@@ -14,6 +14,7 @@ import {
   Activity,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
+import { getLocalSmartResponse } from '../services/caspaKnowledgeEngine';
 
 interface DashboardViewProps {
   onOpenCaspaWithPrompt?: (prompt: string) => void;
@@ -22,6 +23,7 @@ interface DashboardViewProps {
 export const DashboardView: React.FC<DashboardViewProps> = ({ onOpenCaspaWithPrompt }) => {
   const {
     currentRole,
+    currentUser,
     safetyIncidents,
     approvals,
     buses,
@@ -49,14 +51,23 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onOpenCaspaWithPro
       const res = await fetch('/api/v1/caspa/query', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: quickQuery, role: currentRole }),
+        body: JSON.stringify({
+          query: quickQuery,
+          role: currentRole,
+          userName: currentUser?.fullName,
+        }),
       });
+      if (!res.ok) throw new Error('API fallback');
       const data = await res.json();
-      setQuickAnswer(data.answer);
+      const isGeneric =
+        !data?.answer || data.answer.includes('CASPA Engine responded via localized knowledge base');
+      if (isGeneric) {
+        setQuickAnswer(getLocalSmartResponse(quickQuery, currentRole, currentUser?.fullName).answer);
+      } else {
+        setQuickAnswer(data.answer);
+      }
     } catch {
-      setQuickAnswer(
-        `CASPA Executive Summary: Student attendance is pacing high at 96.4%. There are ${pendingApprovals.length} pending requisitions requiring attention.`
-      );
+      setQuickAnswer(getLocalSmartResponse(quickQuery, currentRole, currentUser?.fullName).answer);
     } finally {
       setIsLoadingAi(false);
     }

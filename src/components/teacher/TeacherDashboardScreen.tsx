@@ -12,6 +12,7 @@ import {
   Bell,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
+import { getLocalSmartResponse } from '../../services/caspaKnowledgeEngine';
 
 interface TeacherDashboardScreenProps {
   onNavigate: (tab: string) => void;
@@ -27,12 +28,15 @@ export const TeacherDashboardScreen: React.FC<TeacherDashboardScreenProps> = ({ 
   const handleDraftQuizAi = () => {
     setIsAiLoading(true);
     setTimeout(() => {
-      setAiDraftOutput(
-        "Generated Pop-Quiz for Grade 9B (Factorization):\n1. Factorize 2x² + 7x + 3 = 0\n2. Find roots of x² - 9 = 0\n3. Solve by grouping: 3x² + 6x + 2x + 4\n4. Apply quadratic formula to x² - 4x - 5 = 0\n5. Real-world projectile maximum height word problem.\n\nReady to assign as homework or in-class quiz!"
+      const result = getLocalSmartResponse(
+        'Generate a 5-question pop quiz on Quadratic Equations for Grade 9B',
+        'TEACHER',
+        currentUser?.fullName
       );
+      setAiDraftOutput(result.answer);
       setIsAiLoading(false);
       showToast('CASPA AI generated 5-question pop quiz');
-    }, 600);
+    }, 350);
   };
 
   return (
@@ -360,17 +364,25 @@ export const TeacherDashboardScreen: React.FC<TeacherDashboardScreenProps> = ({ 
             </div>
           </div>
 
-          <button
-            onClick={handleDraftQuizAi}
-            disabled={isAiLoading}
-            className="px-4 py-2 bg-caspaPurple-light hover:bg-purple-600 text-white rounded-lg font-bold text-xs transition shrink-0 shadow-sm disabled:opacity-50"
-          >
-            {isAiLoading ? 'Drafting...' : 'Ask AI'}
-          </button>
+          <div className="flex items-center space-x-2 shrink-0">
+            <button
+              onClick={handleDraftQuizAi}
+              disabled={isAiLoading}
+              className="px-4 py-2 bg-caspaPurple-light hover:bg-purple-600 text-white rounded-lg font-bold text-xs transition shrink-0 shadow-sm disabled:opacity-50"
+            >
+              {isAiLoading ? 'Drafting...' : 'Quick Draft Quiz'}
+            </button>
+            <button
+              onClick={() => onNavigate('caspa')}
+              className="px-4 py-2 bg-white text-purple-950 hover:bg-purple-50 rounded-lg font-bold text-xs transition shrink-0 shadow-sm"
+            >
+              Open Full AI Copilot →
+            </button>
+          </div>
         </div>
 
         {aiDraftOutput && (
-          <div className="p-3 bg-black/30 rounded-lg border border-purple-400/40 text-xs text-purple-100 whitespace-pre-line leading-relaxed">
+          <div className="p-3.5 bg-black/30 rounded-lg border border-purple-400/40 text-xs text-purple-100 whitespace-pre-line leading-relaxed">
             {aiDraftOutput}
           </div>
         )}

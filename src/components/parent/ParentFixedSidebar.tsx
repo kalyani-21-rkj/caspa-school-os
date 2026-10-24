@@ -96,6 +96,14 @@ export const ParentFixedSidebar: React.FC<ParentFixedSidebarProps> = ({
       sublabel: `${activeChild?.classTeacher || 'Class Teacher'}`,
       icon: MessageSquare,
     },
+    {
+      id: 'caspa',
+      label: 'CASPA AI Assistant',
+      sublabel: `Ward & Bus GPS Copilot`,
+      icon: Sparkles,
+      badge: 'AI Live',
+      badgeColor: 'bg-purple-500/20 text-purple-200 border-purple-400/40',
+    },
   ];
 
   return (

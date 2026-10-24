@@ -451,6 +451,32 @@ export const PrincipalDashboardScreen: React.FC<PrincipalDashboardScreenProps> =
         </div>
       </div>
 
+      {/* CASPA Executive AI Co-Pilot Card */}
+      <div className="bg-gradient-to-r from-[#5B3FA3] to-[#173059] rounded-2xl p-5 text-white shadow-md flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="flex items-start space-x-3.5">
+          <div className="w-10 h-10 rounded-xl bg-white/15 border border-white/20 flex items-center justify-center shrink-0">
+            <Sparkles className="w-5 h-5 text-yellow-300" />
+          </div>
+          <div>
+            <div className="flex items-center space-x-2">
+              <h3 className="text-sm font-bold text-white">CASPA Executive AI Co-Pilot</h3>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/20 text-purple-100">
+                Governance &amp; SLA Active
+              </span>
+            </div>
+            <p className="text-xs text-purple-100/90 mt-1">
+              Ready for {currentUser?.fullName || 'Dr. Mehta'}: Query real-time absenteeism anomalies, active POCSO/safeguarding cases, pending approval SLAs, and Term 2 fee collection velocity.
+            </p>
+          </div>
+        </div>
+        <button
+          onClick={() => onNavigate('caspa')}
+          className="px-4 py-2.5 rounded-xl bg-white text-purple-950 font-bold text-xs hover:bg-purple-50 transition shrink-0 shadow-xs"
+        >
+          Ask CASPA AI →
+        </button>
+      </div>
+
       {/* Modal 1: Campus Announcement Broadcast */}
       {isAnnounceModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
