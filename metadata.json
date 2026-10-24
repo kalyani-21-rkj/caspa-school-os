@@ -1,0 +1,6 @@
+{
+  "name": "CASPA School OS - Enterprise School ERP & Mobile App",
+  "description": "Comprehensive School ERP, LMS, and Student Information System with Principal Command Center, Anti-Ragging & Safeguarding, RBAC, Approval Workflows, and Cross-Platform Android Mobile Experience.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
