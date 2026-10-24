@@ -82,6 +82,11 @@ export interface StudentTaskItem {
   score?: number;
   gradeBadge?: string;
   feedbackText?: string;
+  submittedFileName?: string;
+  submittedFileSize?: string;
+  submittedFileUrl?: string;
+  submissionNote?: string;
+  submittedAt?: string;
 }
 
 export interface StudyMaterialItem {

@@ -2524,13 +2524,41 @@ class DatabaseStore {
   }
 
   // Student Methods
-  submitStudentTask(taskId: string) {
+  submitStudentTask(
+    taskId: string,
+    submissionData?: {
+      fileName?: string;
+      fileSize?: string;
+      fileUrl?: string;
+      note?: string;
+    }
+  ) {
     const task = this.studentTasks.find((t) => t.id === taskId);
     const activeName = this.currentUser?.fullName || 'Student';
     if (task) {
       task.status = 'SUBMITTED';
       task.completedQuestions = task.totalQuestions;
-      this.logAudit(activeName, 'STUDENT', 'SUBMIT_HOMEWORK', 'TASKS', task.title, `Uploaded solution for ${task.title}`);
+      if (submissionData?.fileName) {
+        task.submittedFileName = submissionData.fileName;
+      }
+      if (submissionData?.fileSize) {
+        task.submittedFileSize = submissionData.fileSize;
+      }
+      if (submissionData?.fileUrl) {
+        task.submittedFileUrl = submissionData.fileUrl;
+      }
+      if (submissionData?.note) {
+        task.submissionNote = submissionData.note;
+      }
+      task.submittedAt = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      this.logAudit(
+        activeName,
+        'STUDENT',
+        'SUBMIT_HOMEWORK',
+        'TASKS',
+        task.title,
+        `Uploaded solution${submissionData?.fileName ? ` (${submissionData.fileName})` : ''} for ${task.title}`
+      );
     }
     return task;
   }

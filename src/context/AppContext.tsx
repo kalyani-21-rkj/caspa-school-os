@@ -103,7 +103,15 @@ interface AppContextType {
   studentAchievements: StudentAchievement[];
   attendanceHeatmap: AttendanceDayRecord[];
   absenceExcuses: AbsenceExcuseItem[];
-  submitStudentTask: (taskId: string) => void;
+  submitStudentTask: (
+    taskId: string,
+    submissionData?: {
+      fileName?: string;
+      fileSize?: string;
+      fileUrl?: string;
+      note?: string;
+    }
+  ) => void;
   submitAbsenceExcuse: (date: string, reason: string) => void;
 
   // Teacher Module Entities & Actions
@@ -385,11 +393,23 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   // Student Actions
-  const submitStudentTask = (taskId: string) => {
-    const updated = db.submitStudentTask(taskId);
+  const submitStudentTask = (
+    taskId: string,
+    submissionData?: {
+      fileName?: string;
+      fileSize?: string;
+      fileUrl?: string;
+      note?: string;
+    }
+  ) => {
+    const updated = db.submitStudentTask(taskId, submissionData);
     if (updated) {
       setStudentTasks([...db.studentTasks]);
-      showToast(`Submitted solution for "${updated.title}"`);
+      showToast(
+        submissionData?.fileName
+          ? `Uploaded "${submissionData.fileName}" for "${updated.title}"`
+          : `Submitted solution for "${updated.title}"`
+      );
     }
   };
 

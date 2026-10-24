@@ -12,6 +12,7 @@ import {
   Filter,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
+import { downloadClassNotesPdf } from '../../utils/downloadHelper';
 
 export const StudentTimetableScreen: React.FC = () => {
   const { currentUser, studentPeriods, showToast } = useApp();
@@ -144,15 +145,43 @@ export const StudentTimetableScreen: React.FC = () => {
                 {/* Right Action Buttons */}
                 <div className="flex items-center space-x-2 shrink-0 sm:self-center">
                   <button
-                    onClick={() => showToast(`Opening course materials for ${period.subject}`)}
-                    className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold flex items-center space-x-1.5 transition"
+                    onClick={() => {
+                      downloadClassNotesPdf({
+                        subject: period.subject,
+                        periodNumber: period.periodNumber,
+                        teacher: period.teacher,
+                        room: period.room,
+                        timeRange: period.timeRange,
+                        unitTopic: period.unitTopic,
+                        studentName: currentUser?.fullName || 'Elena Vance',
+                        grade: currentUser?.designation || 'Grade 9B',
+                        day: selectedDay,
+                        isAiGenerated: false,
+                      });
+                      showToast(`Downloaded ${period.subject} Class Notes PDF`);
+                    }}
+                    className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold flex items-center space-x-1.5 transition cursor-pointer"
                   >
                     <Download className="w-3.5 h-3.5 text-slate-500" />
                     <span>Class Notes</span>
                   </button>
                   <button
-                    onClick={() => showToast(`Ask CASPA AI about ${period.subject}`)}
-                    className="px-3.5 py-2 bg-purple-50 hover:bg-purple-100 text-caspaPurple border border-purple-200 rounded-xl text-xs font-bold flex items-center space-x-1.5 transition"
+                    onClick={() => {
+                      downloadClassNotesPdf({
+                        subject: period.subject,
+                        periodNumber: period.periodNumber,
+                        teacher: period.teacher,
+                        room: period.room,
+                        timeRange: period.timeRange,
+                        unitTopic: period.unitTopic,
+                        studentName: currentUser?.fullName || 'Elena Vance',
+                        grade: currentUser?.designation || 'Grade 9B',
+                        day: selectedDay,
+                        isAiGenerated: true,
+                      });
+                      showToast(`Downloaded CASPA AI Smart Revision Notes for ${period.subject}`);
+                    }}
+                    className="px-3.5 py-2 bg-purple-50 hover:bg-purple-100 text-caspaPurple border border-purple-200 rounded-xl text-xs font-bold flex items-center space-x-1.5 transition cursor-pointer"
                   >
                     <Sparkles className="w-3.5 h-3.5" />
                     <span>AI Notes</span>

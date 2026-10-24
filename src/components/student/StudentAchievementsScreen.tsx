@@ -12,6 +12,7 @@ import {
   TrendingUp,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
+import { downloadCertificatePdf, downloadReportCardPdf } from '../../utils/downloadHelper';
 
 export const StudentAchievementsScreen: React.FC = () => {
   const { currentUser, studentAchievements, showToast } = useApp();
@@ -53,8 +54,15 @@ export const StudentAchievementsScreen: React.FC = () => {
         </div>
 
         <button
-          onClick={() => showToast('Generating official PDF Report Card...')}
-          className="px-4 py-2 bg-[#176B87] hover:bg-[#125870] text-white rounded-xl text-xs font-bold shadow-xs transition flex items-center space-x-1.5 self-start sm:self-auto"
+          onClick={() => {
+            downloadReportCardPdf(
+              currentUser?.fullName || 'Elena Vance',
+              currentUser?.designation || 'Grade 9B • Roll No. 14',
+              subjectMarks
+            );
+            showToast('Downloaded official PDF Report Card');
+          }}
+          className="px-4 py-2 bg-[#176B87] hover:bg-[#125870] text-white rounded-xl text-xs font-bold shadow-xs transition flex items-center space-x-1.5 self-start sm:self-auto cursor-pointer"
         >
           <Download className="w-4 h-4" />
           <span>Download Report Card</span>
@@ -103,7 +111,7 @@ export const StudentAchievementsScreen: React.FC = () => {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <h3 className="text-base font-extrabold text-navy">Verified Honors &amp; Distinctions</h3>
-            <p className="text-xs text-slate-500">School and regional awards received by Elena Vance</p>
+            <p className="text-xs text-slate-500">School and regional awards received by {currentUser?.fullName || 'Elena Vance'}</p>
           </div>
 
           <div className="flex items-center space-x-1.5 overflow-x-auto bg-slate-100 p-1 rounded-xl border border-slate-200">
@@ -198,8 +206,19 @@ export const StudentAchievementsScreen: React.FC = () => {
                   </div>
 
                   <button
-                    onClick={() => showToast(`Downloading official certificate for ${item.title}`)}
-                    className="px-3 py-1.5 bg-teal/10 hover:bg-teal hover:text-white text-teal rounded-lg text-xs font-bold transition flex items-center space-x-1"
+                    onClick={() => {
+                      downloadCertificatePdf({
+                        title: item.title,
+                        subtitle: item.subtitle,
+                        category: item.category,
+                        ranking: item.ranking,
+                        awardYear: item.awardYear,
+                        studentName: currentUser?.fullName || 'Elena Vance',
+                        grade: currentUser?.designation || 'Grade 9B',
+                      });
+                      showToast(`Downloaded official certificate PDF for ${item.title}`);
+                    }}
+                    className="px-3 py-1.5 bg-teal/10 hover:bg-teal hover:text-white text-teal rounded-lg text-xs font-bold transition flex items-center space-x-1 cursor-pointer"
                   >
                     <Download className="w-3 h-3" />
                     <span>Certificate</span>

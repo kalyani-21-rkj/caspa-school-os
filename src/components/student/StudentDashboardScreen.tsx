@@ -16,6 +16,7 @@ import {
   Check,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
+import { downloadClassNotesPdf } from '../../utils/downloadHelper';
 
 interface StudentDashboardScreenProps {
   onNavigate: (tab: string) => void;
@@ -148,8 +149,20 @@ export const StudentDashboardScreen: React.FC<StudentDashboardScreenProps> = ({ 
 
         <div className="flex items-center space-x-2 pt-1">
           <button
-            onClick={() => showToast('Opening Digital Notes for Thermodynamics')}
-            className="flex-1 py-2.5 bg-[#176B87] hover:bg-[#125870] text-white rounded-lg text-xs font-semibold transition flex items-center justify-center space-x-2 shadow-xs"
+            onClick={() => {
+              downloadClassNotesPdf({
+                subject: livePeriod.subject,
+                periodNumber: livePeriod.periodNumber,
+                teacher: livePeriod.teacher,
+                room: livePeriod.room,
+                timeRange: livePeriod.timeRange,
+                unitTopic: livePeriod.unitTopic,
+                studentName: currentUser?.fullName || 'Elena Vance',
+                grade: currentUser?.designation || 'Grade 9B',
+              });
+              showToast(`Downloaded Digital Notes for ${livePeriod.subject}`);
+            }}
+            className="flex-1 py-2.5 bg-[#176B87] hover:bg-[#125870] text-white rounded-lg text-xs font-semibold transition flex items-center justify-center space-x-2 shadow-xs cursor-pointer"
           >
             <BookOpen className="w-4 h-4" />
             <span>Open Digital Notes</span>
@@ -243,8 +256,20 @@ export const StudentDashboardScreen: React.FC<StudentDashboardScreenProps> = ({ 
 
                   {isLive ? (
                     <button
-                      onClick={() => showToast(`Opening ${period.subject} notes`)}
-                      className="px-3 py-1 bg-teal text-white hover:bg-teal-light rounded-md font-bold text-xs"
+                      onClick={() => {
+                        downloadClassNotesPdf({
+                          subject: period.subject,
+                          periodNumber: period.periodNumber,
+                          teacher: period.teacher,
+                          room: period.room,
+                          timeRange: period.timeRange,
+                          unitTopic: period.unitTopic,
+                          studentName: currentUser?.fullName || 'Elena Vance',
+                          grade: currentUser?.designation || 'Grade 9B',
+                        });
+                        showToast(`Downloaded ${period.subject} Class Notes PDF`);
+                      }}
+                      className="px-3 py-1 bg-teal text-white hover:bg-teal-light rounded-md font-bold text-xs cursor-pointer"
                     >
                       Notes
                     </button>
@@ -297,11 +322,11 @@ export const StudentDashboardScreen: React.FC<StudentDashboardScreenProps> = ({ 
                   <h4 className="font-bold text-navy text-xs leading-snug">{t.title}</h4>
                   <p className="text-[11px] text-slate-500 line-clamp-2">{t.description}</p>
                   <button
-                    onClick={() => submitStudentTask(t.id)}
-                    className="w-full py-1.5 bg-[#176B87] hover:bg-[#125870] text-white rounded-lg text-xs font-semibold flex items-center justify-center space-x-1 transition shadow-xs"
+                    onClick={() => onNavigate('tasks')}
+                    className="w-full py-1.5 bg-[#176B87] hover:bg-[#125870] text-white rounded-lg text-xs font-semibold flex items-center justify-center space-x-1 transition shadow-xs cursor-pointer"
                   >
                     <CheckCircle2 className="w-3.5 h-3.5" />
-                    <span>Turn In Solution</span>
+                    <span>Upload &amp; Turn In Solution</span>
                   </button>
                 </div>
               ))}

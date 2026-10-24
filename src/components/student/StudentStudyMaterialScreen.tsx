@@ -11,6 +11,7 @@ import {
   Check,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
+import { downloadStudyMaterialPdf } from '../../utils/downloadHelper';
 
 export const StudentStudyMaterialScreen: React.FC = () => {
   const { currentUser, studyMaterials, showToast } = useApp();
@@ -158,8 +159,17 @@ export const StudentStudyMaterialScreen: React.FC = () => {
               <div>
                 {isLink ? (
                   <button
-                    onClick={() => showToast(`Opening ${item.title} in new tab`)}
-                    className="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold flex items-center justify-center space-x-1.5 transition"
+                    onClick={() => {
+                      downloadStudyMaterialPdf({
+                        title: item.title,
+                        subject: item.subject,
+                        teacher: item.teacher,
+                        format: item.format,
+                        studentName: currentUser?.fullName || 'Elena Vance',
+                      });
+                      showToast(`Downloaded reference guide for ${item.title}`);
+                    }}
+                    className="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold flex items-center justify-center space-x-1.5 transition cursor-pointer"
                   >
                     <ExternalLink className="w-3.5 h-3.5" />
                     <span>Open Web Resource</span>
@@ -167,15 +177,24 @@ export const StudentStudyMaterialScreen: React.FC = () => {
                 ) : isVideo ? (
                   <button
                     onClick={() => showToast(`Playing video lecture: ${item.title}`)}
-                    className="w-full py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-bold flex items-center justify-center space-x-1.5 transition shadow-xs"
+                    className="w-full py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-bold flex items-center justify-center space-x-1.5 transition shadow-xs cursor-pointer"
                   >
                     <Play className="w-3.5 h-3.5 fill-current" />
                     <span>Watch Video Lecture</span>
                   </button>
                 ) : (
                   <button
-                    onClick={() => showToast(`Downloaded ${item.title}`)}
-                    className="w-full py-2 bg-[#176B87] hover:bg-[#12586e] text-white rounded-xl text-xs font-bold flex items-center justify-center space-x-1.5 transition shadow-xs"
+                    onClick={() => {
+                      downloadStudyMaterialPdf({
+                        title: item.title,
+                        subject: item.subject,
+                        teacher: item.teacher,
+                        format: item.format,
+                        studentName: currentUser?.fullName || 'Elena Vance',
+                      });
+                      showToast(`Downloaded ${item.title}`);
+                    }}
+                    className="w-full py-2 bg-[#176B87] hover:bg-[#12586e] text-white rounded-xl text-xs font-bold flex items-center justify-center space-x-1.5 transition shadow-xs cursor-pointer"
                   >
                     <Download className="w-3.5 h-3.5" />
                     <span>Download Material</span>
