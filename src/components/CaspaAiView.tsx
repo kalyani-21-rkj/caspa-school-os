@@ -2,18 +2,11 @@ import React, { useState } from 'react';
 import {
   Sparkles,
   Send,
-  ShieldAlert,
-  ShieldCheck,
-  Bot,
   User,
-  CheckCircle2,
-  AlertCircle,
-  FileText,
-  HelpCircle,
-  RefreshCw,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { RoleType } from '../types';
+import { getLocalSmartResponse } from '../services/caspaKnowledgeEngine';
 
 interface Message {
   id: string;
@@ -26,14 +19,14 @@ interface Message {
 }
 
 export const CaspaAiView: React.FC = () => {
-  const { currentRole, setActiveTab, showToast } = useApp();
+  const { currentRole, currentUser, setActiveTab, showToast } = useApp();
   const [inputQuery, setInputQuery] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 'm1',
       sender: 'caspa',
-      text: `Greetings! I am CASPA, the authorized intelligence engine for CASPA School OS.\n\nI am currently scoped to your active session role: **${currentRole}**. My responses strictly adhere to school safety, financial confidentiality, and RBAC isolation rules. How can I assist you today?`,
+      text: `Greetings, ${currentUser?.fullName || 'User'}! I am CASPA, the authorized intelligence engine for CASPA School OS.\n\nI am currently scoped to your active session role: ${currentRole}. My responses strictly adhere to school safety, financial confidentiality, and RBAC isolation rules. How can I assist you today?`,
       timestamp: 'Just now',
       sources: ['CASPA Core Intelligence Runtime'],
     },
@@ -58,14 +51,28 @@ export const CaspaAiView: React.FC = () => {
       const res = await fetch('/api/v1/caspa/query', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: textToSend, role: currentRole }),
+        body: JSON.stringify({
+          query: textToSend,
+          role: currentRole,
+          userName: currentUser?.fullName,
+        }),
       });
+
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}`);
+      }
+
+      const contentType = res.headers.get('content-type') || '';
+      if (!contentType.includes('application/json')) {
+        throw new Error('Non-JSON response');
+      }
+
       const data = await res.json();
 
       const caspaMsg: Message = {
         id: `c-${Date.now()}`,
         sender: 'caspa',
-        text: data.answer || data.response || 'Information processed.',
+        text: data.answer || data.response || getLocalSmartResponse(textToSend, currentRole, currentUser?.fullName).answer,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         sources: data.sources || ['CASPA Telemetry'],
         suggestedActions: data.suggestedActions,
@@ -74,13 +81,17 @@ export const CaspaAiView: React.FC = () => {
 
       setMessages((prev) => [...prev, caspaMsg]);
     } catch {
+      const fallback = getLocalSmartResponse(textToSend, currentRole, currentUser?.fullName);
       setMessages((prev) => [
         ...prev,
         {
-          id: `c-err-${Date.now()}`,
+          id: `c-local-${Date.now()}`,
           sender: 'caspa',
-          text: 'CASPA Engine responded via localized knowledge base.',
-          timestamp: 'Just now',
+          text: fallback.answer,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          sources: fallback.sources,
+          suggestedActions: fallback.suggestedActions,
+          requiresReview: fallback.requiresReview,
         },
       ]);
     } finally {
@@ -93,6 +104,14 @@ export const CaspaAiView: React.FC = () => {
     else if (actionId === 'NAV_SAFETY') setActiveTab('safety');
     else if (actionId === 'NAV_ATTENDANCE') setActiveTab('attendance');
     else if (actionId === 'NAV_TRANSPORT' || actionId === 'NAV_BUS') setActiveTab('transport');
+    else if (actionId === 'NAV_TIMETABLE') setActiveTab('timetable');
+    else if (actionId === 'NAV_TASKS') setActiveTab('tasks');
+    else if (actionId === 'NAV_MATERIALS') setActiveTab('materials');
+    else if (actionId === 'NAV_MARKS') setActiveTab('marks');
+    else if (actionId === 'NAV_FEES') setActiveTab('fees');
+    else if (actionId === 'NAV_MESSAGES') setActiveTab('messages');
+    else if (actionId === 'NAV_LESSON_PLANS') setActiveTab('lesson-plans');
+    else if (actionId === 'NAV_ACADEMICS') setActiveTab('academics');
     else if (actionId === 'ACTION_QUIZ') {
       handleSend('Draft a 5-question pop-quiz for Grade 10 Physics on Electromagnetic Induction');
     } else {
@@ -114,11 +133,12 @@ export const CaspaAiView: React.FC = () => {
     STUDENT: [
       "Explain Lenz's Law with a real-life analogy",
       "What homework assignments are due this week?",
+      "Explain Newton's Third Law with examples",
       "Generate 3 practice problems on Quadratic Equations",
     ],
     PARENT: [
       "Where is Bus Route 12 currently located?",
-      "Was Rahul marked present at school today?",
+      "Was my child marked present at school today?",
       "Confirm if my Term 2 tuition fee has any pending dues",
     ],
     SAFETY_OFFICER: [
@@ -132,7 +152,7 @@ export const CaspaAiView: React.FC = () => {
     ],
     SUPER_ADMIN: ["Audit system permission changes in last 24 hours"],
     VICE_PRINCIPAL: ["Academic progress review for Class 10"],
-    ADMIN: ["Check server telemetry"],
+    ADMIN: ["Summarize school-wide attendance, safety cases, and pending approvals"],
     COUNSELLOR: ["Anti-bullying mental health assessment guide"],
     TRANSPORT: ["Inspect active bus routes"],
     HOSTEL_WARDEN: ["Weekend outing curfew compliance"],
@@ -148,7 +168,7 @@ export const CaspaAiView: React.FC = () => {
           <div className="flex items-center space-x-2 text-xs text-slate-500 mb-1">
             <span>CASPA Intelligence Layer</span>
             <span>·</span>
-            <span className="text-caspaPurple font-semibold">Gemini 2.5 Flash Grounded</span>
+            <span className="text-caspaPurple font-semibold">Gemini 3.8 Flash Grounded</span>
             <span>·</span>
             <span>Privacy Guardrails Active</span>
           </div>
@@ -160,7 +180,7 @@ export const CaspaAiView: React.FC = () => {
 
         <div className="flex items-center space-x-2 text-xs">
           <span className="px-2.5 py-1 bg-purple-50 text-caspaPurple border border-purple-200 font-semibold rounded-md">
-            Role Scope: {currentRole}
+            Role Scope: {currentRole} ({currentUser?.fullName || 'User'})
           </span>
         </div>
       </div>
@@ -193,7 +213,7 @@ export const CaspaAiView: React.FC = () => {
               >
                 <div className="flex items-center justify-between text-[11px] mb-1">
                   <span className={`font-semibold ${msg.sender === 'user' ? 'text-slate-300' : 'text-caspaPurple'}`}>
-                    {msg.sender === 'user' ? 'You' : 'CASPA Intelligence'}
+                    {msg.sender === 'user' ? currentUser?.fullName || 'You' : 'CASPA Intelligence'}
                   </span>
                   <span className="text-slate-400 font-mono text-[10px] ml-4">{msg.timestamp}</span>
                 </div>
@@ -267,7 +287,7 @@ export const CaspaAiView: React.FC = () => {
             value={inputQuery}
             onChange={(e) => setInputQuery(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-            placeholder={`Ask CASPA as ${currentRole} (e.g. attendance, safety SLA, bus ETA, syllabus)...`}
+            placeholder={`Ask CASPA as ${currentRole} (e.g. Newton's Laws, Quadratic Equations, homework, bus ETA)...`}
             className="flex-1 px-4 py-2.5 text-xs rounded-lg border border-fieldBorder focus:outline-none focus:border-teal"
           />
           <button

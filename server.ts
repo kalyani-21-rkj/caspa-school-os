@@ -481,12 +481,12 @@ async function startServer() {
 
   // 6. CASPA AI Query
   app.post('/api/v1/caspa/query', async (req: Request, res: Response) => {
-    const { query, role } = req.body;
+    const { query, role, userName } = req.body;
     const activeRole = (role as RoleType) || db.currentUser?.roleType || 'TEACHER';
     if (!query) {
       return res.status(400).json({ error: 'Query is required' });
     }
-    const result = await processCaspaQuery({ query, role: activeRole });
+    const result = await processCaspaQuery({ query, role: activeRole, userName });
     res.json(result);
   });
 
