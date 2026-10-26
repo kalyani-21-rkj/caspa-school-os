@@ -63,6 +63,12 @@ export interface StudentPeriod {
   notesUrl?: string;
   manualUrl?: string;
   isAfterSchool?: boolean;
+  weekLabel?: string;
+  day?: string;
+  gradeSection?: string;
+  completedAt?: string;
+  completedByTeacher?: string;
+  lectureNote?: string;
 }
 
 export interface StudentTaskItem {
@@ -141,6 +147,11 @@ export interface TeacherClass {
   topic?: string;
   isNext?: boolean;
   status: 'UPCOMING' | 'IN_PROGRESS' | 'COMPLETED';
+  day?: string;
+  weekLabel?: string;
+  teacher?: string;
+  completedAt?: string;
+  lectureNote?: string;
 }
 
 export interface TeacherStudent {
@@ -300,13 +311,41 @@ export interface BusVehicle {
 
 export interface TimetableSlot {
   id: string;
+  weekLabel?: string;
+  gradeSection?: string;
   day: string;
   period: number;
   timeRange: string;
   subject: string;
+  unitTopic?: string;
   teacher: string;
   room: string;
   isCurrent?: boolean;
+  isPublished?: boolean;
+  publishedAt?: string;
+  status?: 'UPCOMING' | 'LIVE_NOW' | 'COMPLETED';
+  completedAt?: string;
+  completedByTeacher?: string;
+  lectureNote?: string;
+}
+
+export interface MasterTimetableSlot {
+  id: string;
+  weekLabel: string;
+  gradeSection: string;
+  day: 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday' | 'Saturday';
+  period: number;
+  timeRange: string;
+  subject: string;
+  unitTopic: string;
+  teacher: string;
+  room: string;
+  isPublished: boolean;
+  publishedAt?: string;
+  status: 'UPCOMING' | 'LIVE_NOW' | 'COMPLETED';
+  completedAt?: string;
+  completedByTeacher?: string;
+  lectureNote?: string;
 }
 
 export interface AuditLogItem {

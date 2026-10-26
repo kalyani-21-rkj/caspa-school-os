@@ -18,6 +18,7 @@ import {
   BusVehicle,
   AuditLogItem,
   TimetableSlot,
+  MasterTimetableSlot,
   IncidentStatus,
   AdminStaffMember,
   FeeInvoiceItem,
@@ -140,6 +141,24 @@ interface AppContextType {
   buses: BusVehicle[];
   auditLogs: AuditLogItem[];
   timetable: TimetableSlot[];
+  masterTimetable: MasterTimetableSlot[];
+  availableTimetableWeeks: string[];
+  activeTimetableWeek: string;
+  setActiveTimetableWeek: (week: string) => void;
+  addTimetableWeek: (weekLabel: string) => void;
+  addOrUpdateTimetableSlot: (
+    slotData: Omit<MasterTimetableSlot, 'id'> & { id?: string; applyToAllWeekdays?: boolean }
+  ) => void;
+  deleteTimetableSlot: (slotId: string) => void;
+  generateWeeklyTimetable: (options: {
+    weekLabel: string;
+    gradeSection: string;
+    days?: MasterTimetableSlot['day'][];
+    periodsPerDay?: number;
+    autoPublish?: boolean;
+  }) => void;
+  publishMasterTimetable: (weekLabel: string, gradeSection?: string) => void;
+  togglePeriodCompletion: (slotOrClassId: string, teacherName?: string, lectureNote?: string) => void;
 
   // Admin Actions
   admitStudent: (data: {
@@ -294,6 +313,84 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [safetyIncidents, setSafetyIncidents] = useState<SafetyIncident[]>([...INITIAL_SAFETY_INCIDENTS]);
   const [approvals, setApprovals] = useState<ApprovalTask[]>([...INITIAL_APPROVALS]);
   const [auditLogs, setAuditLogs] = useState<AuditLogItem[]>([...db.auditLogs]);
+
+  // Master Week-wise & Section-wise Timetable State
+  const DEFAULT_TIMETABLE_WEEKS = [
+    'Week 8 (Oct 26 - Oct 31, 2026)',
+    'Week 9 (Nov 02 - Nov 07, 2026)',
+    'Week 10 (Nov 09 - Nov 14, 2026)',
+  ];
+  const [availableTimetableWeeks, setAvailableTimetableWeeks] = useState<string[]>(DEFAULT_TIMETABLE_WEEKS);
+  const [activeTimetableWeek, setActiveTimetableWeek] = useState<string>(DEFAULT_TIMETABLE_WEEKS[0]);
+
+  const buildInitialMasterTimetable = (): MasterTimetableSlot[] => {
+    const days: MasterTimetableSlot['day'][] = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const base9BSlots = [
+      { period: 1, timeRange: '08:30 - 09:15 AM', subject: 'Mathematics (Calculus Core)', unitTopic: 'Quadratic Equation Factorization Ch. 4.2', teacher: 'Mrs. Oswald', room: 'Room 204' },
+      { period: 2, timeRange: '09:20 - 10:05 AM', subject: 'English Literature', unitTopic: 'Shakespearean Tragedy & Rhetoric', teacher: 'Dr. Katherine Wells', room: 'Room 204' },
+      { period: 3, timeRange: '10:15 - 11:00 AM', subject: 'AP Physics (Thermodynamics)', unitTopic: 'Laws of Heat Transfer & Entropy', teacher: 'Dr. Alistair Ross', room: 'Lab 204 North' },
+      { period: 4, timeRange: '11:05 - 11:50 AM', subject: 'World History & Civics', unitTopic: 'Modern Constitutional Frameworks', teacher: 'Mr. Marcus Vance', room: 'Room 304' },
+      { period: 5, timeRange: '12:35 - 01:20 PM', subject: 'Chemistry Lab Practical', unitTopic: 'Titration & Molarity Calculations', teacher: 'Dr. Alistair Ross', room: 'Science Lab 2' },
+      { period: 6, timeRange: '01:25 - 02:10 PM', subject: 'Computer Science & Python', unitTopic: 'Data Structures & Recursion Lab', teacher: 'Mr. Anand Sharma', room: 'STEM Lab' },
+      { period: 7, timeRange: '02:15 - 03:00 PM', subject: 'Physical Education & Athletics', unitTopic: 'Track Conditioning & Team Drills', teacher: 'Coach Briggs', room: 'Main Gymnasium' },
+    ];
+    const base10ASlots = [
+      { period: 1, timeRange: '08:30 - 09:15 AM', subject: 'AP Physics Mechanics', unitTopic: 'Newtonian Kinematics & Vectors', teacher: 'Dr. Alistair Ross', room: 'Lab 204 North' },
+      { period: 2, timeRange: '09:20 - 10:05 AM', subject: 'Algebra II Honors', unitTopic: 'Polynomial Functions & Graphs', teacher: 'Mrs. Oswald', room: 'Room 204' },
+      { period: 3, timeRange: '10:15 - 11:00 AM', subject: 'World Literature', unitTopic: 'Modernist Poetry Analysis', teacher: 'Dr. Katherine Wells', room: 'Room 208' },
+      { period: 4, timeRange: '11:05 - 11:50 AM', subject: 'Computer Science & AI', unitTopic: 'Neural Network Basics in Python', teacher: 'Mr. Anand Sharma', room: 'STEM Lab' },
+      { period: 5, timeRange: '12:35 - 01:20 PM', subject: 'Remedial Math Lab', unitTopic: 'Problem Solving Workshop', teacher: 'Mrs. Oswald', room: 'Math Lab 1' },
+      { period: 6, timeRange: '01:25 - 02:10 PM', subject: 'Global Economics & Civics', unitTopic: 'Macroeconomic Indicators', teacher: 'Mr. Marcus Vance', room: 'Room 304' },
+    ];
+
+    const generated: MasterTimetableSlot[] = [];
+    for (const week of DEFAULT_TIMETABLE_WEEKS.slice(0, 2)) {
+      for (const day of days) {
+        const daySlots9B = day === 'Saturday' ? base9BSlots.slice(0, 4) : base9BSlots;
+        daySlots9B.forEach((slot) => {
+          generated.push({
+            id: `tt-${week.slice(0, 6).replace(/\s+/g, '')}-9B-${day}-P${slot.period}`,
+            weekLabel: week,
+            gradeSection: '9B',
+            day,
+            period: slot.period,
+            timeRange: slot.timeRange,
+            subject: slot.subject,
+            unitTopic: slot.unitTopic,
+            teacher: slot.teacher,
+            room: slot.room,
+            isPublished: true,
+            publishedAt: 'Oct 25, 2026 • 04:30 PM',
+            status: day === 'Monday' && slot.period === 1 && week === DEFAULT_TIMETABLE_WEEKS[0] ? 'COMPLETED' : 'UPCOMING',
+            completedAt: day === 'Monday' && slot.period === 1 && week === DEFAULT_TIMETABLE_WEEKS[0] ? '09:15 AM' : undefined,
+            completedByTeacher: day === 'Monday' && slot.period === 1 && week === DEFAULT_TIMETABLE_WEEKS[0] ? slot.teacher : undefined,
+          });
+        });
+
+        const daySlots10A = day === 'Saturday' ? base10ASlots.slice(0, 4) : base10ASlots;
+        daySlots10A.forEach((slot) => {
+          generated.push({
+            id: `tt-${week.slice(0, 6).replace(/\s+/g, '')}-10A-${day}-P${slot.period}`,
+            weekLabel: week,
+            gradeSection: '10A',
+            day,
+            period: slot.period,
+            timeRange: slot.timeRange,
+            subject: slot.subject,
+            unitTopic: slot.unitTopic,
+            teacher: slot.teacher,
+            room: slot.room,
+            isPublished: true,
+            publishedAt: 'Oct 25, 2026 • 04:30 PM',
+            status: 'UPCOMING',
+          });
+        });
+      }
+    }
+    return generated;
+  };
+
+  const [masterTimetable, setMasterTimetable] = useState<MasterTimetableSlot[]>(() => buildInitialMasterTimetable());
 
   // Principal & Governance Data
   const [principalAgenda, setPrincipalAgenda] = useState<PrincipalAgendaItem[]>([...INITIAL_PRINCIPAL_AGENDA]);
@@ -919,6 +1016,318 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     showToast(`Linked student ${newChild.fullName} successfully!`);
   };
 
+  // ================= MASTER TIMETABLE BUILDER, PUBLISHER & TEACHER COMPLETION =================
+  const addTimetableWeek = (weekLabel: string) => {
+    const trimmed = weekLabel.trim();
+    if (!trimmed) return;
+    if (!availableTimetableWeeks.includes(trimmed)) {
+      setAvailableTimetableWeeks((prev) => [...prev, trimmed]);
+    }
+    setActiveTimetableWeek(trimmed);
+    showToast(`Created & selected timetable week: "${trimmed}"`);
+  };
+
+  const syncTimetableToTeacherAndStudent = (updatedSlots: MasterTimetableSlot[], targetWeek: string) => {
+    // Sync Monday/active day Grade 9B slots to studentPeriods
+    const published9BSlots = updatedSlots
+      .filter((s) => s.weekLabel === targetWeek && s.gradeSection === '9B' && s.day === 'Monday' && s.isPublished)
+      .sort((a, b) => a.period - b.period);
+
+    if (published9BSlots.length > 0) {
+      setStudentPeriods(
+        published9BSlots.map((s) => ({
+          id: s.id,
+          periodNumber: s.period,
+          timeRange: s.timeRange,
+          subject: s.subject,
+          unitTopic: s.unitTopic,
+          teacher: s.teacher,
+          room: s.room,
+          status: s.status,
+          weekLabel: s.weekLabel,
+          day: s.day,
+          gradeSection: s.gradeSection,
+          completedAt: s.completedAt,
+          completedByTeacher: s.completedByTeacher,
+          lectureNote: s.lectureNote,
+        }))
+      );
+    }
+
+    // Sync Mrs. Oswald's published slots for Monday in targetWeek to teacherClasses
+    const oswaldSlots = updatedSlots
+      .filter(
+        (s) =>
+          s.weekLabel === targetWeek &&
+          s.isPublished &&
+          s.day === 'Monday' &&
+          (s.teacher.toLowerCase().includes('oswald') || s.subject.toLowerCase().includes('math') || s.subject.toLowerCase().includes('algebra'))
+      )
+      .sort((a, b) => a.period - b.period);
+
+    if (oswaldSlots.length > 0) {
+      setTeacherClasses((prev) => {
+        const mappedFromTimetable: TeacherClass[] = oswaldSlots.map((s) => ({
+          id: s.id,
+          subject: s.subject,
+          grade: `Grade ${s.gradeSection}`,
+          section: s.gradeSection,
+          period: s.period,
+          periodLabel: `Period ${s.period}`,
+          track: s.unitTopic || 'Core Curriculum Track',
+          timeRange: s.timeRange,
+          room: s.room,
+          studentCount: 32,
+          topic: s.unitTopic,
+          status: s.status === 'COMPLETED' ? 'COMPLETED' : 'UPCOMING',
+          day: s.day,
+          weekLabel: s.weekLabel,
+          teacher: s.teacher,
+          completedAt: s.completedAt,
+          lectureNote: s.lectureNote,
+        }));
+        const existingOtherIds = prev.filter((c) => !mappedFromTimetable.some((m) => m.period === c.period && m.section === c.section));
+        return [...mappedFromTimetable, ...existingOtherIds];
+      });
+    }
+  };
+
+  const addOrUpdateTimetableSlot = (
+    slotData: Omit<MasterTimetableSlot, 'id'> & { id?: string; applyToAllWeekdays?: boolean }
+  ) => {
+    const targetDays: MasterTimetableSlot['day'][] = slotData.applyToAllWeekdays
+      ? ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
+      : [slotData.day];
+
+    setMasterTimetable((prev) => {
+      let next = [...prev];
+      for (const d of targetDays) {
+        const existingIndex = next.findIndex(
+          (s) =>
+            (slotData.id && s.id === slotData.id && !slotData.applyToAllWeekdays) ||
+            (s.weekLabel === slotData.weekLabel &&
+              s.gradeSection === slotData.gradeSection &&
+              s.day === d &&
+              s.period === slotData.period)
+        );
+        const newSlot: MasterTimetableSlot = {
+          id:
+            existingIndex >= 0
+              ? next[existingIndex].id
+              : `tt-${Date.now()}-${slotData.gradeSection}-${d}-P${slotData.period}`,
+          weekLabel: slotData.weekLabel,
+          gradeSection: slotData.gradeSection,
+          day: d,
+          period: slotData.period,
+          timeRange: slotData.timeRange,
+          subject: slotData.subject,
+          unitTopic: slotData.unitTopic,
+          teacher: slotData.teacher,
+          room: slotData.room,
+          isPublished: slotData.isPublished,
+          publishedAt: slotData.isPublished ? 'Just now' : undefined,
+          status: slotData.status || 'UPCOMING',
+          completedAt: slotData.completedAt,
+          completedByTeacher: slotData.completedByTeacher,
+          lectureNote: slotData.lectureNote,
+        };
+
+        if (existingIndex >= 0) {
+          next[existingIndex] = newSlot;
+        } else {
+          next.push(newSlot);
+        }
+      }
+      next.sort((a, b) => a.period - b.period);
+      syncTimetableToTeacherAndStudent(next, slotData.weekLabel);
+      return next;
+    });
+
+    showToast(
+      slotData.applyToAllWeekdays
+        ? `Saved Period ${slotData.period} (${slotData.subject}) across Mon–Fri for Section ${slotData.gradeSection}`
+        : `Saved Period ${slotData.period} (${slotData.subject}) on ${slotData.day} for Section ${slotData.gradeSection}`
+    );
+  };
+
+  const deleteTimetableSlot = (slotId: string) => {
+    setMasterTimetable((prev) => {
+      const next = prev.filter((s) => s.id !== slotId);
+      syncTimetableToTeacherAndStudent(next, activeTimetableWeek);
+      return next;
+    });
+    showToast('Removed period slot from timetable');
+  };
+
+  const generateWeeklyTimetable = (options: {
+    weekLabel: string;
+    gradeSection: string;
+    days?: MasterTimetableSlot['day'][];
+    periodsPerDay?: number;
+    autoPublish?: boolean;
+  }) => {
+    const daysToGenerate: MasterTimetableSlot['day'][] = options.days || [
+      'Monday',
+      'Tuesday',
+      'Wednesday',
+      'Thursday',
+      'Friday',
+      'Saturday',
+    ];
+    const maxPeriods = options.periodsPerDay || 7;
+    const isPublished = options.autoPublish ?? true;
+    const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+    const subjectPool = [
+      { subject: 'Mathematics (Calculus Core)', unitTopic: 'Quadratic Equations & Functions', teacher: 'Mrs. Oswald', room: `Room ${options.gradeSection === '9B' ? '204' : '206'}` },
+      { subject: 'English Literature & Composition', unitTopic: 'Analytical Essays & Literary Themes', teacher: 'Dr. Katherine Wells', room: 'Room 204' },
+      { subject: 'AP Physics (Thermodynamics)', unitTopic: 'Kinematics, Work & Thermal Energy', teacher: 'Dr. Alistair Ross', room: 'Lab 204 North' },
+      { subject: 'World History & Global Civics', unitTopic: 'Constitutional Governance & History', teacher: 'Mr. Marcus Vance', room: 'Room 304' },
+      { subject: 'Chemistry Lab & Stoichiometry', unitTopic: 'Chemical Bonding & Titration Practical', teacher: 'Dr. Alistair Ross', room: 'Science Lab 2' },
+      { subject: 'Computer Science & Python AI', unitTopic: 'Algorithms & Data Structures Lab', teacher: 'Mr. Anand Sharma', room: 'STEM Lab' },
+      { subject: 'Physical Education & Sports', unitTopic: 'Athletic Conditioning & Team Drills', teacher: 'Coach Briggs', room: 'Main Gymnasium' },
+    ];
+
+    const periodTimings = [
+      '08:30 - 09:15 AM',
+      '09:20 - 10:05 AM',
+      '10:15 - 11:00 AM',
+      '11:05 - 11:50 AM',
+      '12:35 - 01:20 PM',
+      '01:25 - 02:10 PM',
+      '02:15 - 03:00 PM',
+    ];
+
+    setMasterTimetable((prev) => {
+      // Remove old slots for this weekLabel + gradeSection on target days
+      const filtered = prev.filter(
+        (s) => !(s.weekLabel === options.weekLabel && s.gradeSection === options.gradeSection && daysToGenerate.includes(s.day))
+      );
+
+      const generatedSlots: MasterTimetableSlot[] = [];
+      daysToGenerate.forEach((day, dayIdx) => {
+        const countForDay = day === 'Saturday' ? Math.min(4, maxPeriods) : maxPeriods;
+        for (let p = 1; p <= countForDay; p++) {
+          // Rotate subjects slightly by day while keeping Period 1/2 consistent for core subjects
+          const poolIndex = p === 1 ? 0 : (p - 1 + dayIdx) % subjectPool.length;
+          const item = subjectPool[poolIndex];
+          generatedSlots.push({
+            id: `tt-gen-${Date.now()}-${options.gradeSection}-${day}-P${p}`,
+            weekLabel: options.weekLabel,
+            gradeSection: options.gradeSection,
+            day,
+            period: p,
+            timeRange: periodTimings[p - 1] || `Period ${p}`,
+            subject: item.subject,
+            unitTopic: `${item.unitTopic} (${day} Session)`,
+            teacher: item.teacher,
+            room: item.room,
+            isPublished,
+            publishedAt: isPublished ? `Today • ${timestamp}` : undefined,
+            status: 'UPCOMING',
+          });
+        }
+      });
+
+      const combined = [...filtered, ...generatedSlots];
+      syncTimetableToTeacherAndStudent(combined, options.weekLabel);
+      return combined;
+    });
+
+    showToast(
+      `Generated ${daysToGenerate.length}-day weekly timetable for Section ${options.gradeSection} (${options.weekLabel})${
+        isPublished ? ' & Published to Teachers!' : ''
+      }`
+    );
+  };
+
+  const publishMasterTimetable = (weekLabel: string, gradeSection?: string) => {
+    const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    setMasterTimetable((prev) => {
+      const updated = prev.map((slot) => {
+        if (slot.weekLabel === weekLabel && (!gradeSection || slot.gradeSection === gradeSection)) {
+          return {
+            ...slot,
+            isPublished: true,
+            publishedAt: `Published Today at ${timestamp}`,
+          };
+        }
+        return slot;
+      });
+      syncTimetableToTeacherAndStudent(updated, weekLabel);
+      return updated;
+    });
+
+    showToast(
+      `Published Master Timetable (${weekLabel}${gradeSection ? ` • Section ${gradeSection}` : ''}) to all Teachers & Students!`
+    );
+  };
+
+  const togglePeriodCompletion = (slotOrClassId: string, teacherName?: string, lectureNote?: string) => {
+    const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    let toggledSubject = 'Lecture';
+    let newStatusIsCompleted = true;
+
+    setMasterTimetable((prev) => {
+      const updated = prev.map((slot) => {
+        if (slot.id === slotOrClassId) {
+          const nextCompleted = slot.status !== 'COMPLETED';
+          newStatusIsCompleted = nextCompleted;
+          toggledSubject = `Period ${slot.period}: ${slot.subject} (${slot.gradeSection})`;
+          return {
+            ...slot,
+            status: (nextCompleted ? 'COMPLETED' : 'UPCOMING') as MasterTimetableSlot['status'],
+            completedAt: nextCompleted ? timestamp : undefined,
+            completedByTeacher: nextCompleted ? teacherName || slot.teacher : undefined,
+            lectureNote: lectureNote ?? slot.lectureNote,
+          };
+        }
+        return slot;
+      });
+      syncTimetableToTeacherAndStudent(updated, activeTimetableWeek);
+      return updated;
+    });
+
+    setTeacherClasses((prev) =>
+      prev.map((cls) => {
+        if (cls.id === slotOrClassId) {
+          const nextCompleted = cls.status !== 'COMPLETED';
+          newStatusIsCompleted = nextCompleted;
+          toggledSubject = `${cls.periodLabel}: ${cls.subject} (${cls.grade})`;
+          return {
+            ...cls,
+            status: nextCompleted ? 'COMPLETED' : 'UPCOMING',
+            completedAt: nextCompleted ? timestamp : undefined,
+            lectureNote: lectureNote ?? cls.lectureNote,
+          };
+        }
+        return cls;
+      })
+    );
+
+    setStudentPeriods((prev) =>
+      prev.map((p) => {
+        if (p.id === slotOrClassId) {
+          const nextCompleted = p.status !== 'COMPLETED';
+          return {
+            ...p,
+            status: nextCompleted ? 'COMPLETED' : 'UPCOMING',
+            completedAt: nextCompleted ? timestamp : undefined,
+            completedByTeacher: nextCompleted ? teacherName || p.teacher : undefined,
+            lectureNote: lectureNote ?? p.lectureNote,
+          };
+        }
+        return p;
+      })
+    );
+
+    showToast(
+      newStatusIsCompleted
+        ? `✓ Marked ${toggledSubject} as Completed (${timestamp}) • Synced to Admin & Student Portals`
+        : `Reopened ${toggledSubject} as Upcoming`
+    );
+  };
+
   return (
     <AppContext.Provider
       value={{
@@ -968,7 +1377,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         approvals,
         buses: db.buses,
         auditLogs,
-        timetable: [],
+        timetable: masterTimetable,
+        masterTimetable,
+        availableTimetableWeeks,
+        activeTimetableWeek,
+        setActiveTimetableWeek,
+        addTimetableWeek,
+        addOrUpdateTimetableSlot,
+        deleteTimetableSlot,
+        generateWeeklyTimetable,
+        publishMasterTimetable,
+        togglePeriodCompletion,
         admitStudent,
         updateStudent,
         archiveStudent,
