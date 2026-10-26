@@ -53,6 +53,7 @@ export const AdminFixedSidebar: React.FC<AdminFixedSidebarProps> = ({
       badgeAlert: activeAlertsCount > 0,
     },
     { id: 'transport', label: 'School Bus Radar', icon: Bus, badge: '24 Bus' },
+    { id: 'erp-hub', label: 'CRM, Hostel, Library & ERP', icon: GraduationCap, badge: '76 Scr' },
     {
       id: 'approvals',
       label: 'Approvals & Requests',
@@ -60,7 +61,7 @@ export const AdminFixedSidebar: React.FC<AdminFixedSidebarProps> = ({
       badge: `${pendingApprovalsCount} Pending`,
       badgeAlert: pendingApprovalsCount > 0,
     },
-    { id: 'rbac', label: 'RBAC & Audit Trail', icon: Settings, badge: 'Secured' },
+    { id: 'rbac', label: 'RBAC, Roles & Workflows', icon: Settings, badge: 'Secured' },
     { id: 'caspa', label: 'CASPA Admin AI', icon: Sparkles, highlight: true },
   ];
 

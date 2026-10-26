@@ -26,30 +26,35 @@ export const PrincipalSafetyScreen: React.FC = () => {
   const {
     principalSafeguardingCases,
     updateSafeguardingCaseStep,
+    createSafeguardingCase,
     triggerEmergencyProtocol,
     showToast,
   } = useApp();
 
   const [activeCategory, setActiveCategory] = useState<'All' | 'Bullying' | 'Anti-Ragging' | 'Child Protection' | 'Discipline'>('All');
-  const [selectedCase, setSelectedCase] = useState<PrincipalSafeguardingCase | null>(null);
+  const [selectedCaseId, setSelectedCaseId] = useState<string | null>(null);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [isEmergencyConfirmOpen, setIsEmergencyConfirmOpen] = useState(false);
   const [emergencyType, setEmergencyType] = useState<'LOCKDOWN' | 'BROADCAST' | 'EVACUATE'>('LOCKDOWN');
+
+  // Form states for new incident report (must be declared before any conditional return!)
+  const [newCaseTitle, setNewCaseTitle] = useState('');
+  const [newCaseCategory, setNewCaseCategory] = useState<'Bullying' | 'Anti-Ragging' | 'Child Protection' | 'Discipline'>('Bullying');
+  const [newCaseSeverity, setNewCaseSeverity] = useState<'CRITICAL' | 'HIGH' | 'MEDIUM'>('HIGH');
+
+  const selectedCase = selectedCaseId
+    ? principalSafeguardingCases.find((c) => c.id === selectedCaseId) || null
+    : null;
 
   // If a case is selected, render the full Incident Case Dossier screen
   if (selectedCase) {
     return (
       <PrincipalIncidentCaseScreen
         caseData={selectedCase}
-        onBack={() => setSelectedCase(null)}
+        onBack={() => setSelectedCaseId(null)}
       />
     );
   }
-
-  // Form states for new incident report
-  const [newCaseTitle, setNewCaseTitle] = useState('');
-  const [newCaseCategory, setNewCaseCategory] = useState<'Bullying' | 'Anti-Ragging' | 'Child Protection' | 'Discipline'>('Bullying');
-  const [newCaseSeverity, setNewCaseSeverity] = useState<'CRITICAL' | 'HIGH' | 'MEDIUM'>('HIGH');
 
   const filteredCases = principalSafeguardingCases.filter((c) => {
     if (activeCategory === 'All') return true;
@@ -275,8 +280,8 @@ export const PrincipalSafetyScreen: React.FC = () => {
                 📎 {incident.notesCount}
               </span>
               <button
-                onClick={() => setSelectedCase(incident)}
-                className="font-bold text-teal hover:underline flex items-center space-x-1"
+                onClick={() => setSelectedCaseId(incident.id)}
+                className="font-bold text-teal hover:underline flex items-center space-x-1 cursor-pointer"
               >
                 <span>View Case</span>
                 <ChevronRight className="w-3.5 h-3.5" />
@@ -349,7 +354,11 @@ export const PrincipalSafetyScreen: React.FC = () => {
             <form
               onSubmit={(e) => {
                 e.preventDefault();
-                showToast(`New incident "${newCaseTitle}" registered & assigned to Officer Davis`);
+                createSafeguardingCase({
+                  title: newCaseTitle,
+                  category: newCaseCategory,
+                  severity: newCaseSeverity,
+                });
                 setIsReportModalOpen(false);
                 setNewCaseTitle('');
               }}

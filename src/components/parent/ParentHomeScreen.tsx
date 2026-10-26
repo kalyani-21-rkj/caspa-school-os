@@ -20,6 +20,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
+import { ExecutiveApprovalTrackerCard } from '../common/ExecutiveApprovalTrackerCard';
 
 interface ParentHomeScreenProps {
   onNavigate: (tab: string) => void;
@@ -633,6 +634,9 @@ export const ParentHomeScreen: React.FC<ParentHomeScreenProps> = ({ onNavigate }
           Open Parent AI →
         </button>
       </div>
+
+      {/* 8. Principal Executive Approvals Tracker (Sibling Fee Concession / Special Requests) */}
+      <ExecutiveApprovalTrackerCard roleContext="PARENT" defaultCategory="Fee Concession" />
 
       {/* ================= MODALS ================= */}
 

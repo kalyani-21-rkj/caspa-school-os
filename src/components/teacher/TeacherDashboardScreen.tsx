@@ -19,11 +19,22 @@ interface TeacherDashboardScreenProps {
 }
 
 export const TeacherDashboardScreen: React.FC<TeacherDashboardScreenProps> = ({ onNavigate }) => {
-  const { currentUser, teacherClasses, showToast } = useApp();
+  const {
+    currentUser,
+    teacherClasses,
+    teacherTasks,
+    principalStaffLeaves,
+    staffPayrollRecords,
+    showToast,
+  } = useApp();
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [aiDraftOutput, setAiDraftOutput] = useState<string | null>(null);
 
   const nextClass = teacherClasses[0]; // Grade 9B Mathematics
+  const myPayroll = staffPayrollRecords[0];
+  const myLatestLeave =
+    principalStaffLeaves.find((l) => l.id === 'leave-oswald-1') || principalStaffLeaves[0];
+  const recentStudentSubmissions = teacherTasks.filter((t) => t.latestStudentSubmission);
 
   const handleDraftQuizAi = () => {
     setIsAiLoading(true);
@@ -62,8 +73,14 @@ export const TeacherDashboardScreen: React.FC<TeacherDashboardScreenProps> = ({ 
 
         <div className="flex items-center space-x-2">
           <button
+            onClick={() => onNavigate('hr')}
+            className="px-3.5 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-navy rounded-lg text-xs font-bold shadow-2xs transition cursor-pointer"
+          >
+            Leave, Payroll &amp; Approvals
+          </button>
+          <button
             onClick={() => onNavigate('attendance')}
-            className="px-4 py-2 bg-[#176B87] hover:bg-[#125870] text-white rounded-lg text-xs font-semibold shadow-xs transition"
+            className="px-4 py-2 bg-[#176B87] hover:bg-[#125870] text-white rounded-lg text-xs font-semibold shadow-xs transition cursor-pointer"
           >
             Mark Period 1 Attendance
           </button>
@@ -101,17 +118,101 @@ export const TeacherDashboardScreen: React.FC<TeacherDashboardScreenProps> = ({ 
         </div>
 
         {/* Homework to Review Card */}
-        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs flex items-center justify-between">
+        <div
+          onClick={() => onNavigate('tasks')}
+          className="bg-white p-5 rounded-xl border border-slate-200 hover:border-teal shadow-xs flex items-center justify-between cursor-pointer transition"
+        >
           <div>
             <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
-              Homework
+              Homework &amp; Uploads
             </span>
-            <p className="text-3xl font-extrabold text-amber-600 font-mono mt-1">12</p>
-            <span className="text-xs text-slate-500">submissions to review</span>
+            <p className="text-3xl font-extrabold text-amber-600 font-mono mt-1">
+              {12 + recentStudentSubmissions.length}
+            </p>
+            <span className="text-xs text-teal font-semibold">
+              {recentStudentSubmissions.length > 0
+                ? `${recentStudentSubmissions.length} new student upload ready →`
+                : 'submissions to review'}
+            </span>
           </div>
           <div className="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
             <FileText className="w-6 h-6" />
           </div>
+        </div>
+      </div>
+
+      {/* Live Cross-Portal Sync Strip (Salary Bank Status + Leave Approval Status + Student Homework Upload) */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div
+          onClick={() => onNavigate('hr')}
+          className="p-3.5 rounded-xl bg-white border border-slate-200 hover:border-teal shadow-2xs flex items-center justify-between cursor-pointer transition text-xs"
+        >
+          <div>
+            <span className="text-[10px] font-bold uppercase text-slate-400 block">
+              Bank Payroll ({myPayroll?.monthYear || 'Oct 2026'})
+            </span>
+            <span className="font-extrabold text-navy block mt-0.5">
+              {myPayroll?.monthlySalaryFormatted} • {myPayroll?.bankName}
+            </span>
+            <span
+              className={`text-[10px] font-bold ${
+                myPayroll?.status === 'PAID_TO_BANK' ? 'text-emerald-600' : 'text-amber-600'
+              }`}
+            >
+              {myPayroll?.status === 'PAID_TO_BANK'
+                ? `✓ Sent to Bank (${myPayroll.accountNumberMasked})`
+                : '● Pending Principal Disbursement'}
+            </span>
+          </div>
+          <ArrowRight className="w-4 h-4 text-slate-400" />
+        </div>
+
+        <div
+          onClick={() => onNavigate('hr')}
+          className="p-3.5 rounded-xl bg-white border border-slate-200 hover:border-teal shadow-2xs flex items-center justify-between cursor-pointer transition text-xs"
+        >
+          <div>
+            <span className="text-[10px] font-bold uppercase text-slate-400 block">
+              Staff Leave Status
+            </span>
+            <span className="font-extrabold text-navy block mt-0.5">
+              {myLatestLeave?.leaveType} ({myLatestLeave?.durationDates})
+            </span>
+            <span
+              className={`text-[10px] font-bold ${
+                myLatestLeave?.status === 'APPROVED'
+                  ? 'text-emerald-600'
+                  : myLatestLeave?.status === 'REJECTED'
+                  ? 'text-rose-600'
+                  : 'text-amber-600'
+              }`}
+            >
+              Principal Status: {myLatestLeave?.status || 'PENDING'}
+            </span>
+          </div>
+          <ArrowRight className="w-4 h-4 text-slate-400" />
+        </div>
+
+        <div
+          onClick={() => onNavigate('tasks')}
+          className="p-3.5 rounded-xl bg-white border border-slate-200 hover:border-teal shadow-2xs flex items-center justify-between cursor-pointer transition text-xs"
+        >
+          <div>
+            <span className="text-[10px] font-bold uppercase text-slate-400 block">
+              Grade 9 Student Sync
+            </span>
+            <span className="font-extrabold text-navy block mt-0.5">
+              {recentStudentSubmissions.length > 0
+                ? `${recentStudentSubmissions[0].latestStudentSubmission?.studentName} submitted task`
+                : 'Assign & Track Grade 9B Work'}
+            </span>
+            <span className="text-[10px] font-bold text-teal">
+              {recentStudentSubmissions.length > 0
+                ? `✓ File: ${recentStudentSubmissions[0].latestStudentSubmission?.fileName}`
+                : 'Click to assign or review tasks →'}
+            </span>
+          </div>
+          <ArrowRight className="w-4 h-4 text-slate-400" />
         </div>
       </div>
 

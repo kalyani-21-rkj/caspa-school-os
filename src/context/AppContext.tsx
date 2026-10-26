@@ -25,6 +25,7 @@ import {
   PrincipalAgendaItem,
   PrincipalCriticalAlert,
   PrincipalStaffLeaveItem,
+  StaffPayrollRecord,
   PrincipalSafeguardingCase,
   PrincipalExecutiveApproval,
   PrincipalOperationModule,
@@ -61,6 +62,7 @@ import {
   INITIAL_PRINCIPAL_AGENDA,
   INITIAL_PRINCIPAL_CRITICAL_ALERTS,
   INITIAL_PRINCIPAL_STAFF_LEAVES,
+  INITIAL_STAFF_PAYROLL_RECORDS,
   INITIAL_PRINCIPAL_SAFEGUARDING_CASES,
   INITIAL_PRINCIPAL_EXECUTIVE_APPROVALS,
   INITIAL_PRINCIPAL_OPERATIONS_MODULES,
@@ -122,7 +124,9 @@ interface AppContextType {
   setStudentAttendance: (studentId: string, status: 'PRESENT' | 'ABSENT' | 'LATE') => void;
   markAllStudentsPresent: () => void;
   updateStudentGrade: (studentId: string, score: number | null, note?: string) => void;
-  createTask: (title: string, type: 'HOMEWORK' | 'ASSIGNMENT', gradeSection: string, dueDate: string) => void;
+  createTask: (title: string, type: 'HOMEWORK' | 'ASSIGNMENT', gradeSection: string, dueDate: string, description?: string) => void;
+  gradeStudentTaskSubmission: (teacherTaskId: string, score: number, feedback: string) => void;
+  submitTeacherLeaveRequest: (data: { leaveType: 'Casual' | 'Medical' | 'Duty'; durationDates: string; note: string }) => void;
   sendParentMessage: (parentId: string, replyText: string) => void;
 
   // Admin & School-wide Enterprise data
@@ -174,14 +178,31 @@ interface AppContextType {
   principalAgenda: PrincipalAgendaItem[];
   principalCriticalAlerts: PrincipalCriticalAlert[];
   principalStaffLeaves: PrincipalStaffLeaveItem[];
+  staffPayrollRecords: StaffPayrollRecord[];
   principalSafeguardingCases: PrincipalSafeguardingCase[];
   principalExecutiveApprovals: PrincipalExecutiveApproval[];
   principalOperationsModules: PrincipalOperationModule[];
   principalDefaulters: { id: string; studentName: string; gradeSection: string; overdueDays: number; amount: string; status: string; noticeLevel: string }[];
   dispatchCriticalAlert: (alertId: string, actionType: string) => void;
-  processPrincipalStaffLeave: (leaveId: string, action: 'APPROVED' | 'REJECTED') => void;
+  processPrincipalStaffLeave: (leaveId: string, action: 'APPROVED' | 'REJECTED', remark?: string) => void;
+  disburseStaffPayroll: (payrollId: string) => void;
+  disburseAllStaffPayroll: () => void;
+  createSafeguardingCase: (data: {
+    title: string;
+    category: PrincipalSafeguardingCase['category'];
+    severity: PrincipalSafeguardingCase['severity'];
+    studentMaskedId?: string;
+    details?: string;
+  }) => void;
   updateSafeguardingCaseStep: (caseId: string, step: number) => void;
   processExecutiveApprovalAction: (approvalId: string, action: 'APPROVED' | 'CHANGES_REQUESTED' | 'REJECTED', note?: string) => void;
+  submitExecutiveApprovalRequest: (data: {
+    title: string;
+    categoryBadge: string;
+    description: string;
+    amount?: string;
+    isEmergency?: boolean;
+  }) => void;
   triggerEmergencyProtocol: (protocol: 'LOCKDOWN' | 'BROADCAST' | 'EVACUATE', details?: string) => void;
   sendFeeReminder: (defaulterId: string) => void;
   addStaffObservationNote: (staffId: string, noteData: { author: string; rating: number; cycle: string; notes: string; commendation?: string }) => void;
@@ -278,6 +299,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [principalAgenda, setPrincipalAgenda] = useState<PrincipalAgendaItem[]>([...INITIAL_PRINCIPAL_AGENDA]);
   const [principalCriticalAlerts, setPrincipalCriticalAlerts] = useState<PrincipalCriticalAlert[]>([...INITIAL_PRINCIPAL_CRITICAL_ALERTS]);
   const [principalStaffLeaves, setPrincipalStaffLeaves] = useState<PrincipalStaffLeaveItem[]>([...INITIAL_PRINCIPAL_STAFF_LEAVES]);
+  const [staffPayrollRecords, setStaffPayrollRecords] = useState<StaffPayrollRecord[]>([...INITIAL_STAFF_PAYROLL_RECORDS]);
   const [principalSafeguardingCases, setPrincipalSafeguardingCases] = useState<PrincipalSafeguardingCase[]>([...INITIAL_PRINCIPAL_SAFEGUARDING_CASES]);
   const [principalExecutiveApprovals, setPrincipalExecutiveApprovals] = useState<PrincipalExecutiveApproval[]>([...INITIAL_PRINCIPAL_EXECUTIVE_APPROVALS]);
   const [principalOperationsModules, setPrincipalOperationsModules] = useState<PrincipalOperationModule[]>([...INITIAL_PRINCIPAL_OPERATIONS_MODULES]);
@@ -405,9 +427,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const updated = db.submitStudentTask(taskId, submissionData);
     if (updated) {
       setStudentTasks([...db.studentTasks]);
+      setTeacherTasks([...db.teacherTasks]);
+      setAuditLogs([...db.auditLogs]);
       showToast(
         submissionData?.fileName
-          ? `Uploaded "${submissionData.fileName}" for "${updated.title}"`
+          ? `Uploaded "${submissionData.fileName}" for "${updated.title}" (Synced to Teacher Portal)`
           : `Submitted solution for "${updated.title}"`
       );
     }
@@ -438,11 +462,40 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   // Teacher Tasks
-  const createTask = (title: string, type: 'HOMEWORK' | 'ASSIGNMENT', gradeSection: string, dueDate: string) => {
-    const newTask = db.createTask(title, type, gradeSection, dueDate);
+  const createTask = (
+    title: string,
+    type: 'HOMEWORK' | 'ASSIGNMENT',
+    gradeSection: string,
+    dueDate: string,
+    description?: string
+  ) => {
+    const newTask = db.createTask(title, type, gradeSection, dueDate, description);
     setTeacherTasks([...db.teacherTasks]);
-    showToast(`Published ${type}: "${title}"`);
+    setStudentTasks([...db.studentTasks]);
+    setAuditLogs([...db.auditLogs]);
+    showToast(`Published ${type}: "${title}" to ${gradeSection} (Synced to Student Portal)`);
     return newTask;
+  };
+
+  const gradeStudentTaskSubmission = (teacherTaskId: string, score: number, feedback: string) => {
+    const updated = db.gradeStudentTaskSubmission(teacherTaskId, score, feedback);
+    if (updated) {
+      setTeacherTasks([...db.teacherTasks]);
+      setStudentTasks([...db.studentTasks]);
+      setAuditLogs([...db.auditLogs]);
+      showToast(`Graded "${updated.title}" (${score}/100) • Synced to Student Portal`);
+    }
+  };
+
+  const submitTeacherLeaveRequest = (data: {
+    leaveType: 'Casual' | 'Medical' | 'Duty';
+    durationDates: string;
+    note: string;
+  }) => {
+    const leave = db.submitTeacherLeaveRequest(data);
+    setPrincipalStaffLeaves([...db.principalStaffLeaves]);
+    setAuditLogs([...db.auditLogs]);
+    showToast(`Leave request (${leave.durationDates}) sent to Principal for approval`);
   };
 
   // Parent Comms
@@ -594,12 +647,45 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
-  const processPrincipalStaffLeave = (leaveId: string, action: 'APPROVED' | 'REJECTED') => {
-    const res = db.processPrincipalStaffLeave(leaveId, action);
+  const processPrincipalStaffLeave = (leaveId: string, action: 'APPROVED' | 'REJECTED', remark?: string) => {
+    const res = db.processPrincipalStaffLeave(leaveId, action, remark);
     if (res) {
       setPrincipalStaffLeaves([...db.principalStaffLeaves]);
-      showToast(`Staff leave marked as ${action}`);
+      setStaffMembers([...db.staffMembers]);
+      setAuditLogs([...db.auditLogs]);
+      showToast(`Staff leave for ${res.staffName} marked as ${action} (Synced to Teacher Account)`);
     }
+  };
+
+  const disburseStaffPayroll = (payrollId: string) => {
+    const res = db.disburseStaffPayroll(payrollId);
+    if (res) {
+      setStaffPayrollRecords([...db.staffPayrollRecords]);
+      setStaffMembers([...db.staffMembers]);
+      setAuditLogs([...db.auditLogs]);
+      showToast(`Disbursed ${res.monthlySalaryFormatted} to ${res.staffName}'s ${res.bankName} account (UTR: ${res.utrNumber})`);
+    }
+  };
+
+  const disburseAllStaffPayroll = () => {
+    const count = db.disburseAllStaffPayroll();
+    setStaffPayrollRecords([...db.staffPayrollRecords]);
+    setStaffMembers([...db.staffMembers]);
+    setAuditLogs([...db.auditLogs]);
+    showToast(`Processed & credited salary to bank accounts for all ${count} pending staff members`);
+  };
+
+  const createSafeguardingCase = (data: {
+    title: string;
+    category: PrincipalSafeguardingCase['category'];
+    severity: PrincipalSafeguardingCase['severity'];
+    studentMaskedId?: string;
+    details?: string;
+  }) => {
+    const newCase = db.createSafeguardingCase(data);
+    setPrincipalSafeguardingCases([...db.principalSafeguardingCases]);
+    setAuditLogs([...db.auditLogs]);
+    showToast(`Logged Safeguarding ${newCase.caseNo} & assigned to Officer Davis`);
   };
 
   const updateSafeguardingCaseStep = (caseId: string, step: number) => {
@@ -614,8 +700,22 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const res = db.processExecutiveApprovalAction(approvalId, action, note);
     if (res) {
       setPrincipalExecutiveApprovals([...db.principalExecutiveApprovals]);
-      showToast(`Executive approval marked as ${action.replace('_', ' ')}`);
+      setAuditLogs([...db.auditLogs]);
+      showToast(`Executive decision (${action.replace('_', ' ')}) synced to ${res.requesterName}'s account`);
     }
+  };
+
+  const submitExecutiveApprovalRequest = (data: {
+    title: string;
+    categoryBadge: string;
+    description: string;
+    amount?: string;
+    isEmergency?: boolean;
+  }) => {
+    const created = db.submitExecutiveApprovalRequest(data);
+    setPrincipalExecutiveApprovals([...db.principalExecutiveApprovals]);
+    setAuditLogs([...db.auditLogs]);
+    showToast(`Submitted "${created.title}" to Principal Executive Approvals queue`);
   };
 
   const triggerEmergencyProtocol = (protocol: 'LOCKDOWN' | 'BROADCAST' | 'EVACUATE', details?: string) => {
@@ -856,6 +956,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         markAllStudentsPresent,
         updateStudentGrade,
         createTask,
+        gradeStudentTaskSubmission,
+        submitTeacherLeaveRequest,
         sendParentMessage,
         students,
         staffMembers,
@@ -883,14 +985,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         principalAgenda,
         principalCriticalAlerts,
         principalStaffLeaves,
+        staffPayrollRecords,
         principalSafeguardingCases,
         principalExecutiveApprovals,
         principalOperationsModules,
         principalDefaulters,
         dispatchCriticalAlert,
         processPrincipalStaffLeave,
+        disburseStaffPayroll,
+        disburseAllStaffPayroll,
+        createSafeguardingCase,
         updateSafeguardingCaseStep,
         processExecutiveApprovalAction,
+        submitExecutiveApprovalRequest,
         triggerEmergencyProtocol,
         sendFeeReminder,
         addStaffObservationNote,

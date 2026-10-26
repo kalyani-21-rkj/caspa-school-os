@@ -16,16 +16,22 @@ import {
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { PrincipalDefaulterLedgerScreen } from './PrincipalDefaulterLedgerScreen';
+import { PrincipalPayrollSummaryScreen } from './PrincipalPayrollSummaryScreen';
+import { downloadInstituteFinancePdf } from '../../utils/downloadHelper';
 
 export const PrincipalFinanceScreen: React.FC = () => {
-  const { principalDefaulters, sendFeeReminder, showToast } = useApp();
+  const {
+    currentUser,
+    principalDefaulters,
+    staffPayrollRecords,
+    sendFeeReminder,
+    showToast,
+  } = useApp();
 
   const [activeTab, setActiveTab] = useState<'fees' | 'expenses' | 'budgets' | 'payroll'>('fees');
   const [timeframe, setTimeframe] = useState<'monthly' | 'quarterly' | 'yearly'>('monthly');
   const [selectedDefaulterId, setSelectedDefaulterId] = useState<string | null>(null);
-  const [isPayrollModalOpen, setIsPayrollModalOpen] = useState(false);
-  const [payrollAccessCode, setPayrollAccessCode] = useState('');
-  const [isPayrollUnlocked, setIsPayrollUnlocked] = useState(false);
+  const [showPayrollSummaryPage, setShowPayrollSummaryPage] = useState(false);
 
   // If a student defaulter is selected, render dedicated ledger screen
   if (selectedDefaulterId) {
@@ -37,20 +43,51 @@ export const PrincipalFinanceScreen: React.FC = () => {
     );
   }
 
+  // If Staff Payroll Summary page is opened, render the dedicated Staff Payroll Summary screen
+  if (showPayrollSummaryPage || activeTab === 'payroll') {
+    return (
+      <PrincipalPayrollSummaryScreen
+        onBack={() => {
+          setShowPayrollSummaryPage(false);
+          setActiveTab('fees');
+        }}
+      />
+    );
+  }
+
   const handleSendReminder = (id: string, name: string) => {
     sendFeeReminder(id);
     showToast(`Dispatched official fee notice to guardians of ${name}`);
   };
 
-  const handleUnlockPayroll = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (payrollAccessCode === 'Bursar99' || payrollAccessCode.length >= 4) {
-      setIsPayrollUnlocked(true);
-      setIsPayrollModalOpen(false);
-      showToast('Payroll ledger unlocked under Bursar compliance delegation');
-    } else {
-      showToast('Invalid Bursar clearance code');
-    }
+  const handleDownloadFinancePdf = () => {
+    downloadInstituteFinancePdf({
+      fiscalYear: 'FY 2024-25 / 2026-27',
+      principalName: currentUser?.fullName || 'Dr. S. K. Mehta',
+      collectedMtd: 'Rs. 18.2L (84%)',
+      outstanding: 'Rs. 4.6L (142 balances)',
+      overdue: 'Rs. 1.2L (38 accounts)',
+      collectionRate: '87% (+2.4% vs Term 1)',
+      totalPayrollMtd: 'Rs. 42.0L',
+      defaulters: principalDefaulters.map((d) => ({
+        studentName: d.studentName,
+        gradeSection: d.gradeSection,
+        amount: d.amount,
+        status: d.status,
+        noticeLevel: 'Official Reminder Sent',
+      })),
+      payrollRecords: staffPayrollRecords.map((p) => ({
+        employeeId: p.employeeId,
+        staffName: p.staffName,
+        designation: p.designation,
+        monthlySalaryFormatted: p.monthlySalaryFormatted,
+        bankName: p.bankName,
+        accountNumberMasked: p.accountNumberMasked,
+        status: p.status,
+        utrNumber: p.utrNumber,
+      })),
+    });
+    showToast('Downloaded Institutional Finance & Payroll Report PDF');
   };
 
   return (
@@ -78,11 +115,12 @@ export const PrincipalFinanceScreen: React.FC = () => {
             <span>FY 24–25</span>
           </div>
           <button
-            onClick={() => showToast('Financial ledger exported (PDF signed by Principal)')}
-            className="p-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 shadow-2xs transition"
-            title="Export Protected Financial Report"
+            onClick={handleDownloadFinancePdf}
+            className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-[#0E2C48] hover:bg-[#123B5D] text-white text-xs font-bold shadow-2xs transition cursor-pointer"
+            title="Download Institutional Finance Report PDF"
           >
-            <Download className="w-4 h-4" />
+            <Download className="w-3.5 h-3.5 text-cyan-300" />
+            <span>Download Finance PDF</span>
           </button>
         </div>
       </div>
@@ -353,7 +391,7 @@ export const PrincipalFinanceScreen: React.FC = () => {
             ))}
           </div>
 
-          {/* Restricted Ledger Summary Banner (Matching image_26ebe089.png) */}
+          {/* Restricted Ledger Summary Banner -> Opens Dedicated Staff Payroll Summary Page */}
           <div className="bg-sky-50/70 p-5 rounded-2xl border border-sky-100 shadow-xs space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2 text-[10px] uppercase font-bold text-sky-900 tracking-wider">
@@ -365,7 +403,9 @@ export const PrincipalFinanceScreen: React.FC = () => {
 
             <div>
               <h4 className="font-extrabold text-[#0E2C48] text-sm">Staff Payroll Summary</h4>
-              <p className="text-xs text-slate-500 mt-0.5">Disbursed on 28th via Automated Mandate</p>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Disbursed on 28th via Automated Mandate • Real-time sync with Teacher bank accounts
+              </p>
             </div>
 
             <div className="flex items-center justify-between pt-2">
@@ -375,10 +415,10 @@ export const PrincipalFinanceScreen: React.FC = () => {
               </div>
 
               <button
-                onClick={() => setIsPayrollModalOpen(true)}
-                className="px-4 py-2 rounded-xl bg-[#123B5D] hover:bg-[#176B87] text-white text-xs font-bold flex items-center space-x-1.5 transition shadow-xs"
+                onClick={() => setShowPayrollSummaryPage(true)}
+                className="px-4 py-2 rounded-xl bg-[#123B5D] hover:bg-[#176B87] text-white text-xs font-bold flex items-center space-x-1.5 transition shadow-xs cursor-pointer"
               >
-                <span>Request Access</span>
+                <span>Open Staff Payroll Summary</span>
                 <ChevronRight className="w-3.5 h-3.5" />
               </button>
             </div>
@@ -428,46 +468,6 @@ export const PrincipalFinanceScreen: React.FC = () => {
                 <div className="h-full bg-teal rounded-full" style={{ width: '70%' }}></div>
               </div>
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* PAYROLL MODAL / UNLOCKED VIEW */}
-      {isPayrollModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-slate-200 animate-in zoom-in-95 duration-150">
-            <div className="flex items-center space-x-2 text-[#0E2C48] mb-2">
-              <Lock className="w-5 h-5 text-teal" />
-              <h4 className="font-extrabold text-navy text-sm">Bursar Ledger Authorization</h4>
-            </div>
-            <p className="text-xs text-slate-500 mb-4">
-              Enter your Executive Head authorization code to unlock the restricted faculty payroll ledger.
-            </p>
-            <form onSubmit={handleUnlockPayroll} className="space-y-3">
-              <input
-                type="password"
-                value={payrollAccessCode}
-                onChange={(e) => setPayrollAccessCode(e.target.value)}
-                placeholder="Enter clearance code"
-                className="w-full text-center tracking-widest font-mono text-base font-bold p-2.5 rounded-xl border border-slate-300 focus:outline-none focus:border-teal"
-                autoFocus
-              />
-              <div className="flex space-x-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setIsPayrollModalOpen(false)}
-                  className="flex-1 py-2 rounded-xl border border-slate-300 text-xs font-semibold text-slate-600 hover:bg-slate-100"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="flex-1 py-2 rounded-xl bg-[#0E2C48] text-white text-xs font-bold hover:bg-[#123B5D]"
-                >
-                  Authorize
-                </button>
-              </div>
-            </form>
           </div>
         </div>
       )}

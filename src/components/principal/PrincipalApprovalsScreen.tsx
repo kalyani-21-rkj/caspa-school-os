@@ -25,13 +25,17 @@ export const PrincipalApprovalsScreen: React.FC = () => {
   } = useApp();
 
   const [activeCategory, setActiveCategory] = useState<'All' | 'Leave' | 'Admission' | 'Fee Concession' | 'Procurement'>('All');
+  const [viewMode, setViewMode] = useState<'PENDING' | 'HISTORY'>('PENDING');
   const [changesModalOpen, setChangesModalOpen] = useState(false);
   const [selectedApprovalId, setSelectedApprovalId] = useState<string | null>(null);
   const [changesComment, setChangesComment] = useState('');
 
   const pendingApprovals = principalExecutiveApprovals.filter((a) => a.status === 'PENDING');
+  const processedApprovals = principalExecutiveApprovals.filter((a) => a.status !== 'PENDING');
 
-  const filteredApprovals = pendingApprovals.filter((app) => {
+  const sourceList = viewMode === 'PENDING' ? pendingApprovals : processedApprovals;
+
+  const filteredApprovals = sourceList.filter((app) => {
     if (activeCategory === 'All') return true;
     if (activeCategory === 'Fee Concession') return app.categoryBadge.includes('Fee');
     if (activeCategory === 'Procurement') return app.categoryBadge.includes('Purchase') || app.categoryBadge.includes('Lab');
@@ -39,13 +43,13 @@ export const PrincipalApprovalsScreen: React.FC = () => {
   });
 
   const handleApprove = (id: string, title: string) => {
-    processExecutiveApprovalAction(id, 'APPROVED');
-    showToast(`Signed & Approved: "${title}"`);
+    processExecutiveApprovalAction(id, 'APPROVED', 'Approved and countersigned by Dr. S. K. Mehta (Principal).');
+    showToast(`Signed & Approved: "${title}" (Synced to requester account)`);
   };
 
   const handleReject = (id: string, title: string) => {
-    processExecutiveApprovalAction(id, 'REJECTED');
-    showToast(`Rejected requisition: "${title}"`);
+    processExecutiveApprovalAction(id, 'REJECTED', 'Declined by Principal Executive Desk. Please review policy guidelines.');
+    showToast(`Rejected requisition: "${title}" (Synced to requester account)`);
   };
 
   const openChangesModal = (id: string) => {
@@ -57,7 +61,7 @@ export const PrincipalApprovalsScreen: React.FC = () => {
     e.preventDefault();
     if (!selectedApprovalId) return;
     processExecutiveApprovalAction(selectedApprovalId, 'CHANGES_REQUESTED', changesComment);
-    showToast('Sent back for amendments with Principal revision directives');
+    showToast('Sent back for amendments with Principal revision directives (Synced to requester)');
     setChangesModalOpen(false);
     setChangesComment('');
     setSelectedApprovalId(null);
@@ -66,23 +70,41 @@ export const PrincipalApprovalsScreen: React.FC = () => {
   return (
     <div className="space-y-6 pb-12 animate-in fade-in duration-200">
       {/* Top Breadcrumb & Auto-Sync Bar (Matching image_507e5e46.png) */}
-      <div className="flex items-center justify-between text-xs">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
         <div className="flex items-center space-x-1.5 font-bold uppercase tracking-wider text-teal">
           <span className="w-2 h-2 rounded-full bg-teal animate-pulse"></span>
-          <span>Active Executive Queue</span>
+          <span>Active Executive Queue • Cross-Portal Sync Enabled</span>
         </div>
-        <div className="flex items-center space-x-1 font-mono text-[11px] text-slate-500 bg-white px-2.5 py-1 rounded-full border border-slate-200">
-          <Clock className="w-3 h-3 text-teal" />
-          <span>Auto-sync active</span>
+        <div className="flex items-center space-x-2">
+          <button
+            onClick={() => setViewMode('PENDING')}
+            className={`px-3 py-1 rounded-full text-xs font-bold transition cursor-pointer ${
+              viewMode === 'PENDING'
+                ? 'bg-[#0E2C48] text-white'
+                : 'bg-white text-slate-600 border border-slate-200'
+            }`}
+          >
+            Pending Queue ({pendingApprovals.length})
+          </button>
+          <button
+            onClick={() => setViewMode('HISTORY')}
+            className={`px-3 py-1 rounded-full text-xs font-bold transition cursor-pointer ${
+              viewMode === 'HISTORY'
+                ? 'bg-[#0E2C48] text-white'
+                : 'bg-white text-slate-600 border border-slate-200'
+            }`}
+          >
+            Processed Decisions ({processedApprovals.length})
+          </button>
         </div>
       </div>
 
-      {/* 3 Metric Cards: 9 Pending SLA, 4 Signed Today, 1 Breached SLA */}
+      {/* 3 Metric Cards: Pending SLA, Signed Today, Breached SLA */}
       <div className="grid grid-cols-3 gap-3">
         <div className="bg-amber-50/70 p-3.5 rounded-2xl border border-amber-200/80 shadow-2xs">
           <div className="flex items-center space-x-1.5 text-amber-700">
             <Clock className="w-4 h-4" />
-            <span className="text-xl font-black text-amber-900">{pendingApprovals.length || 9}</span>
+            <span className="text-xl font-black text-amber-900">{pendingApprovals.length}</span>
           </div>
           <div className="text-[11px] font-bold text-amber-800/90 mt-1">Pending SLA</div>
         </div>
@@ -90,9 +112,9 @@ export const PrincipalApprovalsScreen: React.FC = () => {
         <div className="bg-emerald-50/70 p-3.5 rounded-2xl border border-emerald-200/80 shadow-2xs">
           <div className="flex items-center space-x-1.5 text-emerald-700">
             <CheckCircle2 className="w-4 h-4" />
-            <span className="text-xl font-black text-emerald-900">4</span>
+            <span className="text-xl font-black text-emerald-900">{4 + processedApprovals.length}</span>
           </div>
-          <div className="text-[11px] font-bold text-emerald-800/90 mt-1">Signed Today</div>
+          <div className="text-[11px] font-bold text-emerald-800/90 mt-1">Signed &amp; Synced</div>
         </div>
 
         <div className="bg-rose-50/70 p-3.5 rounded-2xl border border-rose-200/80 shadow-2xs">
@@ -110,7 +132,7 @@ export const PrincipalApprovalsScreen: React.FC = () => {
           <button
             key={cat}
             onClick={() => setActiveCategory(cat)}
-            className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition whitespace-nowrap flex items-center space-x-1.5 ${
+            className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition whitespace-nowrap flex items-center space-x-1.5 cursor-pointer ${
               activeCategory === cat
                 ? 'bg-[#0E2C48] text-white shadow-xs'
                 : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
@@ -119,7 +141,7 @@ export const PrincipalApprovalsScreen: React.FC = () => {
             <span>{cat}</span>
             {cat === 'All' && (
               <span className="bg-teal text-white text-[10px] px-1.5 py-0.2 rounded-full font-black">
-                {pendingApprovals.length || 9}
+                {sourceList.length}
               </span>
             )}
           </button>
@@ -255,30 +277,55 @@ export const PrincipalApprovalsScreen: React.FC = () => {
               </div>
             )}
 
-            {/* 3 Action Buttons: [Approve], [Changes], [Reject] (Matching image_507e5e46.png) */}
+            {/* Principal Remarks if present */}
+            {app.actionNote && (
+              <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs">
+                <span className="font-bold text-[#0E2C48]">Principal Executive Remark: </span>
+                <span className="text-slate-600 italic">&ldquo;{app.actionNote}&rdquo;</span>
+                {app.updatedAt && (
+                  <span className="block text-[10px] text-slate-400 mt-0.5">
+                    Updated: {app.updatedAt} • Synced to {app.requesterName}&apos;s portal
+                  </span>
+                )}
+              </div>
+            )}
+
+            {/* 3 Action Buttons: [Approve], [Changes], [Reject] */}
             <div className="flex items-center space-x-2 pt-2 border-t border-slate-100">
               <button
                 onClick={() => handleApprove(app.id, app.title)}
-                className="flex-1 py-2 rounded-xl bg-teal hover:bg-teal-hover text-white text-xs font-bold flex items-center justify-center space-x-1.5 transition shadow-xs"
+                className={`flex-1 py-2 rounded-xl text-xs font-bold flex items-center justify-center space-x-1.5 transition shadow-xs cursor-pointer ${
+                  app.status === 'APPROVED'
+                    ? 'bg-emerald-600 text-white'
+                    : 'bg-teal hover:bg-teal-hover text-white'
+                }`}
               >
                 <Check className="w-4 h-4" />
-                <span>Approve</span>
+                <span>{app.status === 'APPROVED' ? 'Approved ✓' : 'Approve'}</span>
               </button>
 
               <button
                 onClick={() => openChangesModal(app.id)}
-                className="flex-1 py-2 rounded-xl border border-amber-300 bg-amber-50/50 hover:bg-amber-100 text-amber-800 text-xs font-bold flex items-center justify-center space-x-1.5 transition"
+                className={`flex-1 py-2 rounded-xl border text-xs font-bold flex items-center justify-center space-x-1.5 transition cursor-pointer ${
+                  app.status === 'CHANGES_REQUESTED'
+                    ? 'bg-amber-500 text-white border-amber-600'
+                    : 'border-amber-300 bg-amber-50/50 hover:bg-amber-100 text-amber-800'
+                }`}
               >
-                <MessageSquare className="w-3.5 h-3.5 text-amber-600" />
-                <span>Changes</span>
+                <MessageSquare className="w-3.5 h-3.5" />
+                <span>{app.status === 'CHANGES_REQUESTED' ? 'Changes Sent' : 'Changes'}</span>
               </button>
 
               <button
                 onClick={() => handleReject(app.id, app.title)}
-                className="flex-1 py-2 rounded-xl border border-rose-200 bg-rose-50/50 hover:bg-rose-100 text-rose-700 text-xs font-bold flex items-center justify-center space-x-1.5 transition"
+                className={`flex-1 py-2 rounded-xl border text-xs font-bold flex items-center justify-center space-x-1.5 transition cursor-pointer ${
+                  app.status === 'REJECTED'
+                    ? 'bg-rose-600 text-white border-rose-700'
+                    : 'border-rose-200 bg-rose-50/50 hover:bg-rose-100 text-rose-700'
+                }`}
               >
-                <X className="w-4 h-4 text-rose-600" />
-                <span>Reject</span>
+                <X className="w-4 h-4" />
+                <span>{app.status === 'REJECTED' ? 'Rejected' : 'Reject'}</span>
               </button>
             </div>
           </div>
@@ -286,7 +333,9 @@ export const PrincipalApprovalsScreen: React.FC = () => {
 
         {filteredApprovals.length === 0 && (
           <div className="text-center py-8 text-xs text-slate-400 bg-white rounded-2xl border border-slate-200 p-6">
-            All requisitions in this queue have been signed and authorized.
+            {viewMode === 'PENDING'
+              ? 'All requisitions in this queue have been signed and authorized.'
+              : 'No processed decisions in this category yet.'}
           </div>
         )}
       </div>
@@ -298,11 +347,13 @@ export const PrincipalApprovalsScreen: React.FC = () => {
           <span>All decisions recorded to immutable governance audit trail • ISO 27001 Certified Campus OS</span>
         </div>
         <button
-          onClick={() => showToast('Displaying historical governance log ledger')}
-          className="text-teal font-extrabold hover:underline inline-flex items-center space-x-1 text-[11px]"
+          onClick={() => setViewMode(viewMode === 'PENDING' ? 'HISTORY' : 'PENDING')}
+          className="text-teal font-extrabold hover:underline inline-flex items-center space-x-1 text-[11px] cursor-pointer"
         >
           <History className="w-3 h-3" />
-          <span>View Historical Audit Log</span>
+          <span>
+            {viewMode === 'PENDING' ? 'View Processed Decisions Log' : 'Back to Pending Executive Queue'}
+          </span>
         </button>
       </div>
 

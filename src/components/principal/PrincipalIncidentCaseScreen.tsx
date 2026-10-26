@@ -4,6 +4,7 @@ import {
   AlertTriangle,
   CheckCircle2,
   Clock,
+  Download,
   FileText,
   Lock,
   MessageSquare,
@@ -18,6 +19,7 @@ import {
 } from 'lucide-react';
 import { PrincipalSafeguardingCase } from '../../types';
 import { useApp } from '../../context/AppContext';
+import { downloadSafeguardingCasePdf } from '../../utils/downloadHelper';
 
 interface PrincipalIncidentCaseScreenProps {
   caseData: PrincipalSafeguardingCase;
@@ -39,7 +41,6 @@ export const PrincipalIncidentCaseScreen: React.FC<PrincipalIncidentCaseScreenPr
   const [newDirective, setNewDirective] = useState('');
   const [resolutionSummary, setResolutionSummary] = useState('');
   const [isResolveModalOpen, setIsResolveModalOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<'evidence' | 'timeline' | 'counselling'>('evidence');
 
   const handleAdvanceStep = () => {
     const nextStep = Math.min(4, currentStep + 1);
@@ -65,6 +66,21 @@ export const PrincipalIncidentCaseScreen: React.FC<PrincipalIncidentCaseScreenPr
     showToast(`Case ${caseData.caseNo} marked as RESOLVED and sealed`);
   };
 
+  const handleDownloadDossier = () => {
+    downloadSafeguardingCasePdf({
+      caseNo: caseData.caseNo,
+      title: caseData.title,
+      severity: caseData.severity,
+      category: caseData.category,
+      studentMaskedId: caseData.studentMaskedId,
+      assignedTo: caseData.assignedTo || 'Officer Davis',
+      currentStep,
+      notesCount: caseData.notesCount,
+      details: caseData.details,
+    });
+    showToast(`Downloaded Safeguarding Dossier PDF for ${caseData.caseNo}`);
+  };
+
   return (
     <div className="space-y-6 pb-12 animate-in fade-in duration-200">
       {/* Top Breadcrumb & Status */}
@@ -72,7 +88,7 @@ export const PrincipalIncidentCaseScreen: React.FC<PrincipalIncidentCaseScreenPr
         <div className="flex items-center space-x-2 text-xs font-semibold text-slate-500">
           <button
             onClick={onBack}
-            className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold transition shadow-2xs"
+            className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold transition shadow-2xs cursor-pointer"
           >
             <ArrowLeft className="w-3.5 h-3.5 text-teal" />
             <span>Safeguarding Cases</span>
@@ -82,6 +98,13 @@ export const PrincipalIncidentCaseScreen: React.FC<PrincipalIncidentCaseScreenPr
         </div>
 
         <div className="flex items-center space-x-2">
+          <button
+            onClick={handleDownloadDossier}
+            className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-[#0E2C48] text-xs font-bold transition shadow-2xs cursor-pointer"
+          >
+            <Download className="w-3.5 h-3.5 text-teal" />
+            <span>Download Dossier PDF</span>
+          </button>
           <span
             className={`text-[10px] font-black px-2.5 py-1 rounded-full uppercase ${
               caseData.severity === 'CRITICAL'
@@ -124,13 +147,13 @@ export const PrincipalIncidentCaseScreen: React.FC<PrincipalIncidentCaseScreenPr
               <>
                 <button
                   onClick={handleAdvanceStep}
-                  className="px-4 py-2 rounded-xl bg-[#123B5D] hover:bg-[#176B87] text-white text-xs font-bold transition shadow-xs"
+                  className="px-4 py-2 rounded-xl bg-[#123B5D] hover:bg-[#176B87] text-white text-xs font-bold transition shadow-xs cursor-pointer"
                 >
                   Advance Stage (Step {currentStep} → {Math.min(4, currentStep + 1)})
                 </button>
                 <button
                   onClick={() => setIsResolveModalOpen(true)}
-                  className="px-4 py-2 rounded-xl bg-teal hover:bg-teal-hover text-white text-xs font-bold transition shadow-xs"
+                  className="px-4 py-2 rounded-xl bg-teal hover:bg-teal-hover text-white text-xs font-bold transition shadow-xs cursor-pointer"
                 >
                   Resolve &amp; Close Case
                 </button>

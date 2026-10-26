@@ -11,6 +11,7 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
+import { ExecutiveApprovalTrackerCard } from '../common/ExecutiveApprovalTrackerCard';
 
 export const AdminApprovalsScreen: React.FC = () => {
   const { approvals, processApproval, showToast } = useApp();
@@ -34,7 +35,7 @@ export const AdminApprovalsScreen: React.FC = () => {
             Institutional Approvals &amp; Requests
           </h1>
           <p className="text-xs text-slate-500 mt-0.5">
-            Audit and authorize department procurement, staff leave requisitions, and budget requests.
+            Audit and authorize department procurement, staff leave requisitions, and Principal Executive Approvals.
           </p>
         </div>
 
@@ -54,6 +55,9 @@ export const AdminApprovalsScreen: React.FC = () => {
           ))}
         </div>
       </div>
+
+      {/* Synced Principal Executive Approvals Tracker */}
+      <ExecutiveApprovalTrackerCard roleContext="ADMIN" defaultCategory="Lab Purchase" />
 
       <div className="space-y-3">
         {filtered.map((req) => (

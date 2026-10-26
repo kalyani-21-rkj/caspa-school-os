@@ -25,6 +25,7 @@ import {
   PrincipalAgendaItem,
   PrincipalCriticalAlert,
   PrincipalStaffLeaveItem,
+  StaffPayrollRecord,
   PrincipalSafeguardingCase,
   PrincipalExecutiveApproval,
   PrincipalOperationModule,
@@ -241,7 +242,27 @@ export const INITIAL_STUDENT_PERIODS: StudentPeriod[] = [
 
 export const INITIAL_STUDENT_TASKS: StudentTaskItem[] = [
   {
+    id: 'st-math-1',
+    teacherTaskId: 'task-1',
+    assignedByTeacher: 'Mrs. Oswald',
+    gradeSection: 'Grade 9B',
+    subject: 'MATHEMATICS • GRADE 9B',
+    unit: 'Ch. 4.2 Quadratics',
+    title: 'Quadratic Equations Practice Sheet',
+    description: 'Assigned by Mrs. Oswald (Grade 9B). Solve factorization problems 1–15 and upload your solution sheet.',
+    dueDate: 'Due Sep 25, 2026',
+    isDueToday: true,
+    status: 'PENDING',
+    completedQuestions: 10,
+    totalQuestions: 15,
+    resourceFileName: 'Grade9B_Quadratics_Ch4.pdf',
+    resourceFileSize: '1.2 MB',
+  },
+  {
     id: 'st-1',
+    teacherTaskId: 'task-4',
+    assignedByTeacher: 'Dr. Alistair Ross',
+    gradeSection: 'Grade 9B',
     subject: 'PHYSICS • UNIT 4',
     unit: 'Unit 4',
     title: 'Thermodynamics Problem Set #4',
@@ -254,10 +275,13 @@ export const INITIAL_STUDENT_TASKS: StudentTaskItem[] = [
   },
   {
     id: 'st-2',
+    teacherTaskId: 'task-4',
+    assignedByTeacher: 'Mrs. Oswald',
+    gradeSection: 'Grade 9B',
     subject: 'CALCULUS BC',
     unit: 'Unit 7',
     title: 'Integration by Parts Worksheet',
-    description: 'Period 2 • Mr. Vance. Complete problems 1-12 with all steps written clearly.',
+    description: 'Period 2 • Complete problems 1-12 with all steps written clearly.',
     dueDate: 'Tomorrow, 8:30 AM',
     status: 'PENDING',
     resourceFileName: 'Thomas Calculus Sec 7.1.pdf',
@@ -623,6 +647,7 @@ export const INITIAL_TEACHER_STUDENTS: TeacherStudent[] = [
 export const INITIAL_TEACHER_TASKS: TeacherTask[] = [
   {
     id: 'task-1',
+    linkedStudentTaskId: 'st-math-1',
     title: 'Quadratic Equations Practice Sheet',
     type: 'HOMEWORK',
     gradeSection: 'Grade 9B',
@@ -654,6 +679,7 @@ export const INITIAL_TEACHER_TASKS: TeacherTask[] = [
   },
   {
     id: 'task-4',
+    linkedStudentTaskId: 'st-1',
     title: 'Mid-Term Algebra Performance',
     type: 'ASSIGNMENT',
     gradeSection: 'Grade 9B',
@@ -1547,7 +1573,20 @@ export const INITIAL_PRINCIPAL_CRITICAL_ALERTS: PrincipalCriticalAlert[] = [
 
 export const INITIAL_PRINCIPAL_STAFF_LEAVES: PrincipalStaffLeaveItem[] = [
   {
+    id: 'leave-oswald-1',
+    staffId: 'stf-1',
+    staffName: 'Mrs. Oswald',
+    avatarUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=100&auto=format&fit=crop&q=80',
+    leaveType: 'Duty',
+    durationDates: 'Oct 04 (1d)',
+    designationDept: 'Mathematics Lead • Grade 9B Tutor',
+    note: 'State Mathematics Olympiad Jury Panel • Substitute: Mr. Vance',
+    status: 'PENDING',
+    appliedAt: 'Today, 08:45 AM',
+  },
+  {
     id: 'leave-1',
+    staffId: 'stf-2',
     staffName: 'Mr. Charles Davis',
     avatarUrl: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&auto=format&fit=crop&q=80',
     leaveType: 'Casual',
@@ -1555,9 +1594,11 @@ export const INITIAL_PRINCIPAL_STAFF_LEAVES: PrincipalStaffLeaveItem[] = [
     designationDept: 'Grade 10 Tutor • English Dept',
     note: 'Substitute cover confirmed: Mrs. Higgins (P2, P4)',
     status: 'PENDING',
+    appliedAt: 'Yesterday',
   },
   {
     id: 'leave-2',
+    staffId: 'stf-3',
     staffName: 'Ms. Rachel Higgins',
     avatarUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100&auto=format&fit=crop&q=80',
     leaveType: 'Medical',
@@ -1565,9 +1606,11 @@ export const INITIAL_PRINCIPAL_STAFF_LEAVES: PrincipalStaffLeaveItem[] = [
     designationDept: 'Physics Faculty • AP Level',
     note: '⚠️ Lab session cover pending allocation',
     status: 'PENDING',
+    appliedAt: 'Yesterday',
   },
   {
     id: 'leave-3',
+    staffId: 'stf-4',
     staffName: 'Officer Davis',
     avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&auto=format&fit=crop&q=80',
     leaveType: 'Duty',
@@ -1575,6 +1618,115 @@ export const INITIAL_PRINCIPAL_STAFF_LEAVES: PrincipalStaffLeaveItem[] = [
     designationDept: 'Campus Safety & Transport Lead',
     note: 'Regional transport regulatory summit attendance',
     status: 'PENDING',
+    appliedAt: '2d ago',
+  },
+];
+
+export const INITIAL_STAFF_PAYROLL_RECORDS: StaffPayrollRecord[] = [
+  {
+    id: 'pay-stf-1',
+    staffId: 'stf-1',
+    employeeId: 'EMP-MATH-01',
+    staffName: 'Mrs. Oswald',
+    designation: 'Head of Mathematics & Grade 9B Class Tutor',
+    department: 'Mathematics',
+    salaryGrade: 'Grade IV Senior Master Faculty',
+    monthlySalaryNumeric: 125000,
+    monthlySalaryFormatted: '₹1,25,000',
+    bankName: 'HDFC Bank',
+    accountNumberMasked: 'A/C •••• 4821',
+    ifscCode: 'HDFC0001204',
+    monthYear: 'October 2026',
+    status: 'PENDING_DISBURSEMENT',
+  },
+  {
+    id: 'pay-stf-2',
+    staffId: 'stf-2',
+    employeeId: 'EMP-ENG-03',
+    staffName: 'Mr. Charles Davis',
+    designation: 'Senior Faculty - English Literature & Grade 10 Tutor',
+    department: 'Language',
+    salaryGrade: 'Grade III Faculty Lead',
+    monthlySalaryNumeric: 115000,
+    monthlySalaryFormatted: '₹1,15,000',
+    bankName: 'ICICI Bank',
+    accountNumberMasked: 'A/C •••• 7739',
+    ifscCode: 'ICIC0000412',
+    monthYear: 'October 2026',
+    status: 'PAID_TO_BANK',
+    utrNumber: 'NEFT2026991842',
+    disbursedAt: 'Oct 01, 2026 • 10:15 AM',
+    disbursedBy: 'Dr. Mehta (Principal)',
+  },
+  {
+    id: 'pay-stf-3',
+    staffId: 'stf-3',
+    employeeId: 'EMP-SCI-05',
+    staffName: 'Ms. Rachel Higgins',
+    designation: 'Physics Faculty & AP Laboratory Director',
+    department: 'Science',
+    salaryGrade: 'Grade III Faculty Specialist',
+    monthlySalaryNumeric: 118000,
+    monthlySalaryFormatted: '₹1,18,000',
+    bankName: 'State Bank of India',
+    accountNumberMasked: 'A/C •••• 3092',
+    ifscCode: 'SBIN0004419',
+    monthYear: 'October 2026',
+    status: 'PENDING_DISBURSEMENT',
+  },
+  {
+    id: 'pay-stf-4',
+    staffId: 'stf-4',
+    employeeId: 'EMP-SEC-01',
+    staffName: 'Officer Davis',
+    designation: 'Campus Safety & Transport Lead',
+    department: 'Transport',
+    salaryGrade: 'Grade II Security Director',
+    monthlySalaryNumeric: 88000,
+    monthlySalaryFormatted: '₹88,000',
+    bankName: 'Axis Bank',
+    accountNumberMasked: 'A/C •••• 9120',
+    ifscCode: 'UTIB0000811',
+    monthYear: 'October 2026',
+    status: 'PAID_TO_BANK',
+    utrNumber: 'NEFT2026991899',
+    disbursedAt: 'Oct 01, 2026 • 10:15 AM',
+    disbursedBy: 'Dr. Mehta (Principal)',
+  },
+  {
+    id: 'pay-stf-5',
+    staffId: 'stf-5',
+    employeeId: 'EMP-MED-01',
+    staffName: 'Dr. Robert Vance',
+    designation: 'Campus Health & Clinic Officer',
+    department: 'Administration',
+    salaryGrade: 'Grade IV Medical Officer',
+    monthlySalaryNumeric: 135000,
+    monthlySalaryFormatted: '₹1,35,000',
+    bankName: 'HDFC Bank',
+    accountNumberMasked: 'A/C •••• 5510',
+    ifscCode: 'HDFC0001204',
+    monthYear: 'October 2026',
+    status: 'PAID_TO_BANK',
+    utrNumber: 'NEFT2026991912',
+    disbursedAt: 'Oct 01, 2026 • 10:18 AM',
+    disbursedBy: 'Dr. Mehta (Principal)',
+  },
+  {
+    id: 'pay-stf-6',
+    staffId: 'stf-6',
+    employeeId: 'EMP-SCI-01',
+    staffName: 'Dr. Sunita Verma',
+    designation: 'Natural Sciences Head & AP Curriculum Chair',
+    department: 'Science',
+    salaryGrade: 'Grade V Senior Academic Chair',
+    monthlySalaryNumeric: 140000,
+    monthlySalaryFormatted: '₹1,40,000',
+    bankName: 'Kotak Mahindra Bank',
+    accountNumberMasked: 'A/C •••• 6604',
+    ifscCode: 'KKBK0008122',
+    monthYear: 'October 2026',
+    status: 'PENDING_DISBURSEMENT',
   },
 ];
 
@@ -1622,11 +1774,59 @@ export const INITIAL_PRINCIPAL_SAFEGUARDING_CASES: PrincipalSafeguardingCase[] =
 
 export const INITIAL_PRINCIPAL_EXECUTIVE_APPROVALS: PrincipalExecutiveApproval[] = [
   {
+    id: 'exec-app-4',
+    initials: 'MO',
+    avatarBg: 'bg-emerald-100 text-emerald-800',
+    requesterName: 'Mrs. Oswald',
+    requesterRole: 'Department of Mathematics (Teacher)',
+    requesterRoleType: 'TEACHER',
+    categoryBadge: 'Academic Blueprint',
+    isEmergency: false,
+    slaString: '2h SLA left',
+    title: 'Grade 9B Remedial Math Blueprint & Grant Revision',
+    description: 'Algebra II remedial curriculum with 4-week diagnostic milestone tracking and workbook printing requisition.',
+    amount: '₹12,500',
+    steps: [
+      { name: 'Submitted', completed: true },
+      { name: 'Principal Review', completed: false, current: true },
+      { name: 'Final Decision', completed: false },
+    ],
+    status: 'PENDING',
+    submittedAt: 'Today, 09:15 AM',
+  },
+  {
+    id: 'exec-app-2',
+    initials: 'EV',
+    avatarBg: 'bg-sky-100 text-sky-800',
+    requesterName: 'Elena Vance',
+    requesterRole: 'Grade 9B • Roll No. 14 (Student)',
+    requesterRoleType: 'STUDENT',
+    categoryBadge: 'Fee Concession',
+    isEmergency: false,
+    slaString: '1d SLA • Priority Merit Review',
+    title: 'Merit Scholarship & Robotics Club Grant (Elena Vance)',
+    description: 'Sibling & National Debate Merit Tier 2 Adjustment for Semester 2. Applied relief: 15% tuition concession (₹18,500) verified with parent affidavit.',
+    amount: '₹18,500',
+    detailsBox: {
+      label: 'Accounts ledger verified',
+      value: 'Rank #2 GPA 3.90 Verified',
+      badge: 'Verified',
+    },
+    steps: [
+      { name: 'Submitted', completed: true },
+      { name: 'Principal Review', completed: false, current: true },
+      { name: 'Final Decision', completed: false },
+    ],
+    status: 'PENDING',
+    submittedAt: 'Yesterday, 04:20 PM',
+  },
+  {
     id: 'exec-app-1',
     initials: 'OD',
     avatarBg: 'bg-rose-100 text-rose-800',
     requesterName: 'Officer Davis',
-    requesterRole: 'Campus Safety & Transit',
+    requesterRole: 'Campus Safety & Transit (Admin)',
+    requesterRoleType: 'ADMIN',
     categoryBadge: 'Emergency',
     isEmergency: true,
     slaString: '30m remaining • Expedited Flash SLA',
@@ -1643,56 +1843,32 @@ export const INITIAL_PRINCIPAL_EXECUTIVE_APPROVALS: PrincipalExecutiveApproval[]
       { name: 'Dispatch', completed: false },
     ],
     status: 'PENDING',
-  },
-  {
-    id: 'exec-app-2',
-    initials: 'FD',
-    avatarBg: 'bg-sky-100 text-sky-800',
-    requesterName: 'Finance Dept',
-    requesterRole: 'Bursar + Accounts Office',
-    categoryBadge: 'Fee Concession',
-    isEmergency: false,
-    slaString: '1d overdue • Immediate escalation flagged',
-    title: 'Elena Vance (Grade 10-A)',
-    description: 'Sibling Policy Tier 2 Adjustment for Semester 2. Applied relief: 15% tuition concession (₹18,500) verified with parent affidavit.',
-    detailsBox: {
-      label: 'Accounts ledger verified',
-      value: 'Sibling enrolled in G7',
-      badge: 'Verified',
-    },
-    status: 'PENDING',
+    submittedAt: '30m ago',
   },
   {
     id: 'exec-app-3',
-    initials: 'AV',
+    initials: 'AS',
     avatarBg: 'bg-indigo-100 text-indigo-800',
-    requesterName: 'Mr. Arthur Vance',
-    requesterRole: 'STEM Faculty Coordinator',
-    categoryBadge: 'Lab Purchase',
+    requesterName: 'Mrs. Anita Sharma',
+    requesterRole: 'Parent of Aarav (10-B) & Ananya (7-A)',
+    requesterRoleType: 'PARENT',
+    categoryBadge: 'Admission / Transfer',
     isEmergency: false,
     slaString: '4h ago',
-    title: 'Optics Benches & Laser Diffraction Mounts',
-    description: 'Required apparatus for AP Physics Lab practical exams. Approved in Department Q3 budget plan.',
-    amount: '₹45,000',
+    title: 'Inter-House & Olympiad Travel Exemption Request',
+    description: 'Executive authorization requested for Aarav Sharma (10-B) to represent CASPA at the National STEM Robotics Championship.',
     detailsBox: {
-      label: 'CAPEX Fund #4',
-      value: 'Budget approved by HOD',
-      badge: 'CAPEX',
+      label: 'Faculty Nominated',
+      value: 'Endorsed by Mrs. Oswald',
+      badge: 'Olympiad',
     },
+    steps: [
+      { name: 'Submitted', completed: true },
+      { name: 'Principal Review', completed: false, current: true },
+      { name: 'Final Decision', completed: false },
+    ],
     status: 'PENDING',
-  },
-  {
-    id: 'exec-app-4',
-    initials: 'EO',
-    avatarBg: 'bg-emerald-100 text-emerald-800',
-    requesterName: 'Mrs. Eleanor Oswald',
-    requesterRole: 'Mathematics Department',
-    categoryBadge: 'Academic Blueprint',
-    isEmergency: false,
-    slaString: '2h SLA left',
-    title: 'Grade 9B Remedial Math Blueprint Revision',
-    description: 'Algebra II remedial curriculum with 4-week diagnostic milestone tracking.',
-    status: 'PENDING',
+    submittedAt: '4h ago',
   },
 ];
 
@@ -2328,6 +2504,7 @@ class DatabaseStore {
   principalAgenda: PrincipalAgendaItem[] = [...INITIAL_PRINCIPAL_AGENDA];
   principalCriticalAlerts: PrincipalCriticalAlert[] = [...INITIAL_PRINCIPAL_CRITICAL_ALERTS];
   principalStaffLeaves: PrincipalStaffLeaveItem[] = [...INITIAL_PRINCIPAL_STAFF_LEAVES];
+  staffPayrollRecords: StaffPayrollRecord[] = [...INITIAL_STAFF_PAYROLL_RECORDS];
   principalSafeguardingCases: PrincipalSafeguardingCase[] = [...INITIAL_PRINCIPAL_SAFEGUARDING_CASES];
   principalExecutiveApprovals: PrincipalExecutiveApproval[] = [...INITIAL_PRINCIPAL_EXECUTIVE_APPROVALS];
   principalOperationsModules: PrincipalOperationModule[] = [...INITIAL_PRINCIPAL_OPERATIONS_MODULES];
@@ -2534,8 +2711,9 @@ class DatabaseStore {
     }
   ) {
     const task = this.studentTasks.find((t) => t.id === taskId);
-    const activeName = this.currentUser?.fullName || 'Student';
+    const activeName = this.currentUser?.roleType === 'STUDENT' ? this.currentUser.fullName : 'Elena Vance';
     if (task) {
+      const wasAlreadySubmitted = task.status === 'SUBMITTED' || task.status === 'GRADED';
       task.status = 'SUBMITTED';
       task.completedQuestions = task.totalQuestions;
       if (submissionData?.fileName) {
@@ -2550,7 +2728,51 @@ class DatabaseStore {
       if (submissionData?.note) {
         task.submissionNote = submissionData.note;
       }
-      task.submittedAt = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      const timeNow = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      task.submittedAt = timeNow;
+
+      // Sync submission to Teacher Tasks so Teacher sees student's completed work & uploaded file
+      let linkedTeacherTask = this.teacherTasks.find(
+        (tt) =>
+          tt.id === task.teacherTaskId ||
+          tt.linkedStudentTaskId === task.id ||
+          tt.title.toLowerCase() === task.title.toLowerCase()
+      );
+
+      if (!linkedTeacherTask) {
+        linkedTeacherTask = {
+          id: `task-sync-${Date.now()}`,
+          linkedStudentTaskId: task.id,
+          title: task.title,
+          type: 'HOMEWORK',
+          gradeSection: task.gradeSection || 'Grade 9B',
+          dueDate: task.dueDate,
+          submittedCount: 25,
+          totalCount: 32,
+          status: 'PUBLISHED',
+        };
+        this.teacherTasks.unshift(linkedTeacherTask);
+        task.teacherTaskId = linkedTeacherTask.id;
+      } else {
+        if (!wasAlreadySubmitted) {
+          linkedTeacherTask.submittedCount = Math.min(
+            linkedTeacherTask.totalCount,
+            linkedTeacherTask.submittedCount + 1
+          );
+        }
+        linkedTeacherTask.linkedStudentTaskId = task.id;
+      }
+
+      linkedTeacherTask.latestStudentSubmission = {
+        studentName: activeName,
+        fileName: task.submittedFileName || 'Homework_Solution.pdf',
+        fileSize: task.submittedFileSize || '1.1 MB',
+        fileUrl: task.submittedFileUrl,
+        note: task.submissionNote,
+        submittedAt: `Today at ${timeNow}`,
+        status: 'SUBMITTED',
+      };
+
       this.logAudit(
         activeName,
         'STUDENT',
@@ -2603,9 +2825,18 @@ class DatabaseStore {
     return std;
   }
 
-  createTask(title: string, type: 'HOMEWORK' | 'ASSIGNMENT', gradeSection: string, dueDate: string) {
+  createTask(title: string, type: 'HOMEWORK' | 'ASSIGNMENT', gradeSection: string, dueDate: string, description?: string) {
+    const teacherName =
+      this.currentUser?.roleType === 'TEACHER' ? this.currentUser.fullName : 'Mrs. Oswald';
+    const studentTaskId = `st-assigned-${Date.now()}`;
+    const teacherTaskId = `task-${Date.now()}`;
+
     const newTask: TeacherTask = {
-      id: `task-${Date.now()}`,
+      id: teacherTaskId,
+      linkedStudentTaskId: studentTaskId,
+      description:
+        description ||
+        `Assigned by ${teacherName} for ${gradeSection}. Complete all questions and upload your solution document.`,
       title,
       type,
       gradeSection,
@@ -2615,8 +2846,109 @@ class DatabaseStore {
       status: 'PUBLISHED',
     };
     this.teacherTasks.unshift(newTask);
-    this.logAudit('Mrs. Oswald', 'TEACHER', 'CREATE_TASK', 'TASKS', newTask.id, `Created ${type}: ${title}`);
+
+    // Sync to Student Tasks so Grade 9 / student profile immediately sees the assigned work
+    const newStudentTask: StudentTaskItem = {
+      id: studentTaskId,
+      teacherTaskId,
+      assignedByTeacher: teacherName,
+      gradeSection,
+      subject: `MATHEMATICS • ${gradeSection.toUpperCase()}`,
+      unit: type === 'HOMEWORK' ? 'Homework' : 'Assignment',
+      title,
+      description:
+        description ||
+        `Assigned by ${teacherName} (${gradeSection}). Complete the ${type.toLowerCase()} and upload your work before the due date.`,
+      dueDate,
+      isDueToday: true,
+      status: 'PENDING',
+      completedQuestions: 0,
+      totalQuestions: 10,
+      resourceFileName: `${title.replace(/\s+/g, '_')}_Worksheet.pdf`,
+      resourceFileSize: '1.1 MB',
+    };
+    this.studentTasks.unshift(newStudentTask);
+
+    this.logAudit(
+      teacherName,
+      'TEACHER',
+      'CREATE_TASK',
+      'TASKS',
+      newTask.id,
+      `Assigned ${type} "${title}" to ${gradeSection} (Synced to Student Portal)`
+    );
     return newTask;
+  }
+
+  gradeStudentTaskSubmission(teacherTaskId: string, score: number, feedback: string) {
+    const tTask = this.teacherTasks.find((t) => t.id === teacherTaskId);
+    if (tTask) {
+      if (tTask.latestStudentSubmission) {
+        tTask.latestStudentSubmission.status = 'GRADED';
+        tTask.latestStudentSubmission.score = score;
+        tTask.latestStudentSubmission.feedback = feedback;
+      }
+      const sTask = this.studentTasks.find(
+        (st) =>
+          st.id === tTask.linkedStudentTaskId ||
+          st.teacherTaskId === tTask.id ||
+          st.title.toLowerCase() === tTask.title.toLowerCase()
+      );
+      if (sTask) {
+        sTask.status = 'GRADED';
+        sTask.score = score;
+        sTask.gradeBadge =
+          score >= 95 ? 'Grade A+' : score >= 85 ? 'Grade A' : score >= 75 ? 'Grade B+' : 'Grade B';
+        sTask.feedbackText = feedback;
+      }
+      this.logAudit(
+        this.currentUser?.fullName || 'Mrs. Oswald',
+        'TEACHER',
+        'GRADE_TASK_SUBMISSION',
+        'TASKS',
+        teacherTaskId,
+        `Graded submission for "${tTask.title}": ${score}/100`
+      );
+    }
+    return tTask;
+  }
+
+  submitTeacherLeaveRequest(data: {
+    leaveType: 'Casual' | 'Medical' | 'Duty';
+    durationDates: string;
+    note: string;
+  }) {
+    const staffName =
+      this.currentUser?.roleType === 'TEACHER' ? this.currentUser.fullName : 'Mrs. Oswald';
+    const designationDept =
+      this.currentUser?.roleType === 'TEACHER'
+        ? this.currentUser.designation
+        : 'Department of Mathematics • Grade 9B Tutor';
+
+    const newLeave: PrincipalStaffLeaveItem = {
+      id: `leave-${Date.now()}`,
+      staffId: 'stf-1',
+      staffName,
+      avatarUrl:
+        this.currentUser?.avatarUrl ||
+        'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=100&auto=format&fit=crop&q=80',
+      leaveType: data.leaveType,
+      durationDates: data.durationDates,
+      designationDept,
+      note: data.note,
+      status: 'PENDING',
+      appliedAt: 'Just now',
+    };
+    this.principalStaffLeaves.unshift(newLeave);
+    this.logAudit(
+      staffName,
+      'TEACHER',
+      'APPLY_STAFF_LEAVE',
+      'STAFF',
+      newLeave.id,
+      `Submitted ${data.leaveType} leave request for ${data.durationDates}: ${data.note}`
+    );
+    return newLeave;
   }
 
   sendParentMessage(parentId: string, replyText: string) {
@@ -2831,13 +3163,117 @@ class DatabaseStore {
     return alert;
   }
 
-  processPrincipalStaffLeave(leaveId: string, action: 'APPROVED' | 'REJECTED') {
+  processPrincipalStaffLeave(leaveId: string, action: 'APPROVED' | 'REJECTED', remark?: string) {
     const leave = this.principalStaffLeaves.find(l => l.id === leaveId);
     if (leave) {
       leave.status = action;
+      leave.principalRemark =
+        remark ||
+        (action === 'APPROVED'
+          ? 'Approved by Principal Dr. Mehta • Substitute roster confirmed'
+          : 'Declined due to examination proctoring schedule');
+
+      // Also sync with staff directory if approved
+      const matchedStaff = this.staffMembers.find(
+        (s) =>
+          s.id === leave.staffId ||
+          s.fullName.toLowerCase().includes(leave.staffName.replace('Mrs. ', '').replace('Mr. ', '').toLowerCase())
+      );
+      if (matchedStaff && action === 'APPROVED') {
+        matchedStaff.status = 'ON_LEAVE';
+        matchedStaff.liveStatusText = `Approved Leave (${leave.durationDates})`;
+      }
+
       this.logAudit('Dr. Mehta', 'PRINCIPAL', 'LEAVE_DECISION', 'STAFF', leaveId, `${action} leave for ${leave.staffName} (${leave.durationDates})`);
     }
     return leave;
+  }
+
+  disburseStaffPayroll(payrollId: string) {
+    const rec = this.staffPayrollRecords.find((r) => r.id === payrollId);
+    if (rec) {
+      rec.status = 'PAID_TO_BANK';
+      rec.utrNumber = `NEFT2026${Math.floor(100000 + Math.random() * 900000)}`;
+      rec.disbursedAt = `Today, ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+      rec.disbursedBy = this.currentUser?.fullName || 'Dr. Mehta (Principal)';
+
+      const stf = this.staffMembers.find((s) => s.id === rec.staffId);
+      if (stf && stf.ferpaCompliance) {
+        stf.ferpaCompliance.monthlyDisbursement = `${rec.monthlySalaryFormatted} / month (Credited to ${rec.bankName} ${rec.accountNumberMasked} • Ref: ${rec.utrNumber})`;
+      }
+
+      this.logAudit(
+        'Dr. Mehta',
+        'PRINCIPAL',
+        'PAYROLL_DISBURSE',
+        'FINANCE',
+        payrollId,
+        `Disbursed ${rec.monthlySalaryFormatted} salary to ${rec.staffName} (${rec.bankName} ${rec.accountNumberMasked}) • UTR: ${rec.utrNumber}`
+      );
+    }
+    return rec;
+  }
+
+  disburseAllStaffPayroll() {
+    const timeStr = `Today, ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+    let count = 0;
+    this.staffPayrollRecords.forEach((rec) => {
+      if (rec.status !== 'PAID_TO_BANK') {
+        rec.status = 'PAID_TO_BANK';
+        rec.utrNumber = `NEFT2026${Math.floor(100000 + Math.random() * 900000)}`;
+        rec.disbursedAt = timeStr;
+        rec.disbursedBy = this.currentUser?.fullName || 'Dr. Mehta (Principal)';
+        count++;
+
+        const stf = this.staffMembers.find((s) => s.id === rec.staffId);
+        if (stf && stf.ferpaCompliance) {
+          stf.ferpaCompliance.monthlyDisbursement = `${rec.monthlySalaryFormatted} / month (Credited to ${rec.bankName} ${rec.accountNumberMasked} • Ref: ${rec.utrNumber})`;
+        }
+      }
+    });
+    this.logAudit(
+      'Dr. Mehta',
+      'PRINCIPAL',
+      'BATCH_PAYROLL_DISBURSE',
+      'FINANCE',
+      'October-2026',
+      `Batch disbursed monthly payroll to bank accounts for ${count} pending staff members`
+    );
+    return count;
+  }
+
+  createSafeguardingCase(data: {
+    title: string;
+    category: PrincipalSafeguardingCase['category'];
+    severity: PrincipalSafeguardingCase['severity'];
+    studentMaskedId?: string;
+    details?: string;
+  }) {
+    const newCase: PrincipalSafeguardingCase = {
+      id: `case-${Date.now()}`,
+      caseNo: `Case #SF-0${Math.floor(235 + Math.random() * 600)}`,
+      severity: data.severity,
+      timeAgo: 'Just now',
+      studentMaskedId: data.studentMaskedId || `Student ID: ***${Math.floor(1000 + Math.random() * 8999)}`,
+      title: data.title,
+      assignedTo: 'Assigned to Campus Safety Lead Officer Davis & Counselor Rey',
+      currentStep: 1,
+      notesCount: 'Initial intake statement logged',
+      category: data.category,
+      details:
+        data.details ||
+        'Incident logged via Safeguarding Command Center. Immediate triage and witness statement collection initiated.',
+    };
+    this.principalSafeguardingCases.unshift(newCase);
+    this.logAudit(
+      this.currentUser?.fullName || 'Dr. Mehta',
+      'PRINCIPAL',
+      'CREATE_SAFEGUARDING_CASE',
+      'SAFETY',
+      newCase.id,
+      `Logged safeguarding incident ${newCase.caseNo}: ${newCase.title}`
+    );
+    return newCase;
   }
 
   updateSafeguardingCaseStep(caseId: string, step: number) {
@@ -2853,13 +3289,85 @@ class DatabaseStore {
     const item = this.principalExecutiveApprovals.find(a => a.id === approvalId);
     if (item) {
       item.status = action;
-      item.actionNote = note;
-      if (item.steps && action === 'APPROVED') {
-        item.steps.forEach(s => s.completed = true);
+      item.actionNote =
+        note ||
+        (action === 'APPROVED'
+          ? 'Signed & Approved by Principal Dr. Mehta. Authorized for immediate execution.'
+          : action === 'REJECTED'
+          ? 'Declined by Principal Office. Does not meet current term policy criteria.'
+          : 'Revision requested by Principal Office.');
+      item.updatedAt = `Today, ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+      if (item.steps) {
+        if (action === 'APPROVED') {
+          item.steps.forEach((s) => {
+            s.completed = true;
+            s.current = false;
+          });
+        } else {
+          item.steps.forEach((s, idx) => {
+            s.completed = idx === 0;
+            s.current = idx === 1;
+          });
+        }
       }
       this.logAudit('Dr. Mehta', 'PRINCIPAL', 'EXECUTIVE_APPROVAL', 'APPROVALS', approvalId, `${action} executive requisition: "${item.title}"`);
     }
     return item;
+  }
+
+  submitExecutiveApprovalRequest(data: {
+    title: string;
+    categoryBadge: string;
+    description: string;
+    amount?: string;
+    isEmergency?: boolean;
+    requesterNameOverride?: string;
+    requesterRoleOverride?: string;
+    requesterRoleTypeOverride?: RoleType;
+  }) {
+    const reqName = data.requesterNameOverride || this.currentUser?.fullName || 'User';
+    const reqRole = data.requesterRoleOverride || this.currentUser?.designation || 'Campus Member';
+    const reqRoleType = data.requesterRoleTypeOverride || this.currentUser?.roleType || 'STUDENT';
+    const initials = reqName
+      .split(' ')
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((w) => w[0]?.toUpperCase() || '')
+      .join('');
+
+    const newApproval: PrincipalExecutiveApproval = {
+      id: `exec-app-${Date.now()}`,
+      initials: initials || 'RQ',
+      avatarBg: data.isEmergency ? 'bg-rose-100 text-rose-800' : 'bg-teal/15 text-teal',
+      requesterName: reqName,
+      requesterRole: `${reqRole} (${reqRoleType.replace('_', ' ')})`,
+      requesterRoleType: reqRoleType,
+      requesterId: this.currentUser?.id,
+      categoryBadge: data.categoryBadge,
+      isEmergency: data.isEmergency || false,
+      slaString: 'Just submitted • 24h SLA',
+      title: data.title,
+      description: data.description,
+      amount: data.amount ? (data.amount.startsWith('₹') ? data.amount : `₹${data.amount}`) : undefined,
+      steps: [
+        { name: 'Submitted', completed: true },
+        { name: 'Principal Review', completed: false, current: true },
+        { name: 'Final Decision', completed: false },
+      ],
+      status: 'PENDING',
+      submittedAt: `Today, ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
+    };
+
+    this.principalExecutiveApprovals.unshift(newApproval);
+    this.logAudit(
+      reqName,
+      reqRoleType,
+      'SUBMIT_EXECUTIVE_APPROVAL',
+      'APPROVALS',
+      newApproval.id,
+      `Submitted "${newApproval.title}" (${newApproval.categoryBadge}) for Principal Executive Approval`
+    );
+    return newApproval;
   }
 
   triggerEmergencyProtocol(protocol: 'LOCKDOWN' | 'BROADCAST' | 'EVACUATE', details?: string) {

@@ -196,10 +196,17 @@ export const StudentTasksScreen: React.FC = () => {
             >
               <div className="space-y-3">
                 {/* Top Badge Row */}
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-bold text-teal bg-teal/10 px-2 py-0.5 rounded uppercase tracking-wider">
-                    {task.subject}
-                  </span>
+                <div className="flex items-center justify-between flex-wrap gap-1">
+                  <div className="flex items-center space-x-1.5">
+                    <span className="text-[10px] font-bold text-teal bg-teal/10 px-2 py-0.5 rounded uppercase tracking-wider">
+                      {task.subject}
+                    </span>
+                    {task.assignedByTeacher && (
+                      <span className="text-[10px] font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded">
+                        By {task.assignedByTeacher}
+                      </span>
+                    )}
+                  </div>
                   {isPending && (
                     <span className="text-[10px] font-bold text-amber-700 bg-amber-100 px-2.5 py-0.5 rounded-full flex items-center space-x-1">
                       <Clock className="w-3 h-3" />
@@ -215,7 +222,7 @@ export const StudentTasksScreen: React.FC = () => {
                   {isSubmitted && (
                     <span className="text-[10px] font-bold text-cyan-800 bg-cyan-100 px-2.5 py-0.5 rounded-full flex items-center space-x-1">
                       <CheckCircle2 className="w-3 h-3" />
-                      <span>Submitted • Awaiting Review</span>
+                      <span>Submitted • Synced to Teacher</span>
                     </span>
                   )}
                   {isOverdue && (

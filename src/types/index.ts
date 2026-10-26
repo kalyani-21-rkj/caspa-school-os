@@ -67,6 +67,9 @@ export interface StudentPeriod {
 
 export interface StudentTaskItem {
   id: string;
+  teacherTaskId?: string;
+  assignedByTeacher?: string;
+  gradeSection?: string;
   subject: string;
   unit: string;
   title: string;
@@ -160,6 +163,8 @@ export interface TeacherStudent {
 
 export interface TeacherTask {
   id: string;
+  linkedStudentTaskId?: string;
+  description?: string;
   title: string;
   type: 'HOMEWORK' | 'ASSIGNMENT';
   gradeSection: string;
@@ -168,6 +173,17 @@ export interface TeacherTask {
   totalCount: number;
   status: 'PUBLISHED' | 'OVERDUE' | 'DRAFT';
   lateCount?: number;
+  latestStudentSubmission?: {
+    studentName: string;
+    fileName?: string;
+    fileSize?: string;
+    fileUrl?: string;
+    note?: string;
+    submittedAt: string;
+    status: 'SUBMITTED' | 'GRADED';
+    score?: number;
+    feedback?: string;
+  };
 }
 
 export interface ParentMessage {
@@ -409,6 +425,7 @@ export interface PrincipalCriticalAlert {
 
 export interface PrincipalStaffLeaveItem {
   id: string;
+  staffId?: string;
   staffName: string;
   avatarUrl: string;
   leaveType: 'Casual' | 'Medical' | 'Duty';
@@ -416,6 +433,28 @@ export interface PrincipalStaffLeaveItem {
   designationDept: string;
   note: string;
   status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  appliedAt?: string;
+  principalRemark?: string;
+}
+
+export interface StaffPayrollRecord {
+  id: string;
+  staffId: string;
+  employeeId: string;
+  staffName: string;
+  designation: string;
+  department: string;
+  salaryGrade: string;
+  monthlySalaryNumeric: number;
+  monthlySalaryFormatted: string;
+  bankName: string;
+  accountNumberMasked: string;
+  ifscCode: string;
+  monthYear: string;
+  status: 'PAID_TO_BANK' | 'PENDING_DISBURSEMENT';
+  utrNumber?: string;
+  disbursedAt?: string;
+  disbursedBy?: string;
 }
 
 export interface PrincipalSafeguardingCase {
@@ -438,6 +477,8 @@ export interface PrincipalExecutiveApproval {
   avatarBg?: string;
   requesterName: string;
   requesterRole: string;
+  requesterRoleType?: RoleType;
+  requesterId?: string;
   categoryBadge: string;
   isEmergency?: boolean;
   slaString: string;
@@ -452,6 +493,8 @@ export interface PrincipalExecutiveApproval {
   amount?: string;
   status: 'PENDING' | 'APPROVED' | 'CHANGES_REQUESTED' | 'REJECTED';
   actionNote?: string;
+  submittedAt?: string;
+  updatedAt?: string;
 }
 
 export interface PrincipalOperationModule {

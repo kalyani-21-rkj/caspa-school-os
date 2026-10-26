@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { SafetyIncident, IncidentStatus } from '../../types';
+import { AccessControlledBadge } from '../common/AccessControlledBadge';
 
 export const AdminSafetyScreen: React.FC = () => {
   const { safetyIncidents, updateSafetyIncident, showToast } = useApp();
@@ -61,13 +62,21 @@ export const AdminSafetyScreen: React.FC = () => {
           </p>
         </div>
 
-        <button
-          onClick={() => showToast('Exported confidential Safeguarding Committee dossier')}
-          className="flex items-center space-x-1.5 px-3.5 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold transition shadow-xs"
-        >
-          <FileText className="w-3.5 h-3.5 text-slate-500" />
-          <span>Audit Log Export</span>
-        </button>
+        <div className="flex items-center space-x-2">
+          <AccessControlledBadge
+            moduleName="Anti-Ragging & Child Safeguarding"
+            recordScope="Safeguarding Committee / Principal / Safety Officer Only"
+            sensitivityLevel="CONFIDENTIAL"
+            maskedFields={['Victim Identity (Encrypted)', 'Anonymous Reporter IP', 'Counselling Session Notes']}
+          />
+          <button
+            onClick={() => showToast('Exported confidential Safeguarding Committee dossier')}
+            className="flex items-center space-x-1.5 px-3.5 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold transition shadow-xs"
+          >
+            <FileText className="w-3.5 h-3.5 text-slate-500" />
+            <span>Audit Log Export</span>
+          </button>
+        </div>
       </div>
 
       {/* SLA Metric Banner */}

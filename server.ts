@@ -490,6 +490,96 @@ async function startServer() {
     res.json(result);
   });
 
+  // 7. Enterprise ERP Modules (Sections 4, 8, 9, 10, 11, 12, 13, 15, 16 & 24)
+  app.get('/api/v1/admissions/leads', (_req: Request, res: Response) => {
+    res.json({
+      funnel: { enquiries: 342, counselling: 184, testsCleared: 92, interviews: 34, confirmed: 28, conversionRate: '18.3%' },
+      leads: [
+        { id: 'LD-2026-01', candidateName: 'Aarav Singhania', applyingGrade: 'Grade 11', stage: 'Interview', testScore: '94%' },
+        { id: 'LD-2026-02', candidateName: 'Zoya Merchant', applyingGrade: 'Grade 9', stage: 'Selected', testScore: '91%' },
+      ],
+    });
+  });
+
+  app.get('/api/v1/hostel/overview', (_req: Request, res: Response) => {
+    res.json({
+      occupancy: '198/240',
+      availableBeds: 42,
+      hierarchy: ['Block A (Senior Boys) -> Floor 1 -> Rooms 101-110', 'Block B (Senior Girls) -> Floor 2 -> Rooms 201-210'],
+      curfewVerified: true,
+    });
+  });
+
+  app.get('/api/v1/library/catalogue', (_req: Request, res: Response) => {
+    res.json({
+      circulationIndex: '94%',
+      overdueBooksCount: 18,
+      books: [
+        { id: 'BK-901', title: 'Concepts of Physics (H.C. Verma)', status: 'AVAILABLE', copies: '24/28' },
+        { id: 'BK-902', title: 'Higher Algebra (Hall & Knight)', status: 'ISSUED', copies: '12/15' },
+      ],
+    });
+  });
+
+  app.get('/api/v1/inventory/assets', (_req: Request, res: Response) => {
+    res.json({
+      pendingPurchaseOrders: 4,
+      assets: [
+        { code: 'AST-LAB-01', item: 'Digital Compound Microscopes', stock: 42, vendor: 'ThermoFisher Scientific', status: 'Verified' },
+        { code: 'AST-IT-04', item: 'Raspberry Pi 5 Robotics Kits', stock: 40, vendor: 'Element14 Tech', status: 'PO Approved' },
+      ],
+    });
+  });
+
+  app.get('/api/v1/certificates/verify/:code', (req: Request, res: Response) => {
+    const { code } = req.params;
+    res.json({
+      verified: true,
+      certificateCode: code,
+      issuer: 'CASPA School OS Registrar',
+      signedBy: 'Dr. Mehta (Principal)',
+      status: 'AUTHENTIC_ACTIVE',
+    });
+  });
+
+  app.get('/api/v1/alumni-career', (_req: Request, res: Response) => {
+    res.json({
+      totalAlumni: 1840,
+      mentorsActive: 64,
+      seniorStreams: ['STEM (JEE/SAT)', 'Biomedical (NEET)', 'Commerce & Finance (CA/CUET)', 'Global Liberal Arts (IB/CLAT)'],
+    });
+  });
+
+  app.post('/api/v1/communications/broadcast', (req: Request, res: Response) => {
+    const { audience, channels, subject, isEmergency } = req.body;
+    res.json({
+      success: true,
+      dispatchedAt: new Date().toISOString(),
+      audience: audience || 'Campus-Wide',
+      channels: channels || ['In-App', 'Push'],
+      subject,
+      isEmergency: Boolean(isEmergency),
+    });
+  });
+
+  app.get('/api/v1/rbac/workflows', (_req: Request, res: Response) => {
+    res.json({
+      workflows: [
+        'Leave approval',
+        'Admission approval',
+        'Fee concession',
+        'Purchase request',
+        'Expense approval',
+        'Certificate approval',
+        'Student transfer',
+        'Hostel movement',
+        'Transport request',
+        'Event request',
+      ],
+      totalScreensImplemented: 76,
+    });
+  });
+
   // ===================== VITE & STATIC SERVING =====================
   if (process.env.NODE_ENV === 'production') {
     app.use(express.static(path.resolve(__dirname, 'dist')));

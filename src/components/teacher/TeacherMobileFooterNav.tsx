@@ -7,6 +7,7 @@ import {
   Award,
   MessageSquare,
   Sparkles,
+  Building2,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
@@ -19,7 +20,7 @@ export const TeacherMobileFooterNav: React.FC = () => {
     { id: 'attendance', label: 'Attendance', icon: CheckSquare, badge: 'Live' },
     { id: 'tasks', label: 'Tasks', icon: FileText },
     { id: 'marks', label: 'Marks', icon: Award },
-    { id: 'comms', label: 'Comms', icon: MessageSquare },
+    { id: 'hr', label: 'HR/Pay', icon: Building2 },
     { id: 'caspa', label: 'AI', icon: Sparkles, highlight: true },
   ];
 

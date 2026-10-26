@@ -262,30 +262,32 @@ export const PrincipalStaffScreen: React.FC = () => {
         </div>
       </div>
 
-      {/* Pending Staff Leave Section (Matching image_b0cd8d0f.png) */}
+      {/* Staff Leave Section (Synced live with Teacher Portal) */}
       <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <Clock className="w-4 h-4 text-teal" />
-            <h3 className="font-extrabold text-navy text-sm">Pending Staff Leave</h3>
+            <h3 className="font-extrabold text-navy text-sm">Staff Leave Requests (Teacher Sync)</h3>
             <span className="text-[10px] font-bold text-rose-700 bg-rose-100 px-2 py-0.5 rounded-full">
-              {pendingLeaves.length} Actionable
+              {pendingLeaves.length} Pending • {principalStaffLeaves.length} Total
             </span>
           </div>
-          <button
-            onClick={() => showToast('Navigated to HR Approval Hub')}
-            className="text-xs font-bold text-teal hover:underline flex items-center space-x-1"
-          >
-            <span>Approve Hub</span>
-            <ChevronRight className="w-3.5 h-3.5" />
-          </button>
+          <span className="text-[11px] font-semibold text-teal">
+            Live Sync with Teacher Portal
+          </span>
         </div>
 
         <div className="space-y-3">
-          {pendingLeaves.map((leave) => (
+          {principalStaffLeaves.map((leave) => (
             <div
               key={leave.id}
-              className="p-3.5 rounded-xl border border-slate-200 bg-slate-50/50 space-y-2.5"
+              className={`p-3.5 rounded-xl border space-y-2.5 ${
+                leave.status === 'APPROVED'
+                  ? 'border-emerald-200 bg-emerald-50/30'
+                  : leave.status === 'REJECTED'
+                  ? 'border-rose-200 bg-rose-50/30'
+                  : 'border-slate-200 bg-slate-50/50'
+              }`}
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
@@ -295,7 +297,7 @@ export const PrincipalStaffScreen: React.FC = () => {
                     className="w-9 h-9 rounded-full object-cover border border-slate-200"
                   />
                   <div>
-                    <div className="flex items-center space-x-2">
+                    <div className="flex flex-wrap items-center gap-1.5">
                       <span className="font-bold text-xs text-[#0E2C48]">{leave.staffName}</span>
                       <span
                         className={`text-[9px] font-bold px-1.5 py-0.2 rounded ${
@@ -307,6 +309,17 @@ export const PrincipalStaffScreen: React.FC = () => {
                         }`}
                       >
                         {leave.leaveType}
+                      </span>
+                      <span
+                        className={`text-[9px] font-extrabold px-2 py-0.5 rounded-full uppercase ${
+                          leave.status === 'APPROVED'
+                            ? 'bg-emerald-100 text-emerald-800'
+                            : leave.status === 'REJECTED'
+                            ? 'bg-rose-100 text-rose-800'
+                            : 'bg-amber-100 text-amber-800'
+                        }`}
+                      >
+                        {leave.status}
                       </span>
                     </div>
                     <div className="text-[11px] text-slate-500">{leave.designationDept}</div>
@@ -328,31 +341,33 @@ export const PrincipalStaffScreen: React.FC = () => {
                 <button
                   onClick={() => {
                     processPrincipalStaffLeave(leave.id, 'APPROVED');
-                    showToast(`Approved leave request for ${leave.staffName}`);
+                    showToast(`Approved leave request for ${leave.staffName} (Synced to Teacher account)`);
                   }}
-                  className="flex-1 py-1.5 rounded-lg bg-[#123B5D] hover:bg-[#176B87] text-white text-xs font-bold flex items-center justify-center space-x-1 transition shadow-xs"
+                  className={`flex-1 py-1.5 rounded-lg text-xs font-bold flex items-center justify-center space-x-1 transition shadow-xs cursor-pointer ${
+                    leave.status === 'APPROVED'
+                      ? 'bg-emerald-600 text-white'
+                      : 'bg-[#123B5D] hover:bg-[#176B87] text-white'
+                  }`}
                 >
                   <CheckCircle2 className="w-3.5 h-3.5 text-cyan-300" />
-                  <span>Approve</span>
+                  <span>{leave.status === 'APPROVED' ? 'Approved ✓' : 'Approve'}</span>
                 </button>
                 <button
                   onClick={() => {
                     processPrincipalStaffLeave(leave.id, 'REJECTED');
-                    showToast(`Rejected leave request for ${leave.staffName}`);
+                    showToast(`Rejected leave request for ${leave.staffName} (Synced to Teacher account)`);
                   }}
-                  className="px-4 py-1.5 rounded-lg border border-slate-300 hover:bg-slate-100 text-slate-600 text-xs font-semibold transition"
+                  className={`px-4 py-1.5 rounded-lg border text-xs font-semibold transition cursor-pointer ${
+                    leave.status === 'REJECTED'
+                      ? 'bg-rose-600 text-white border-rose-700'
+                      : 'border-slate-300 hover:bg-slate-100 text-slate-600'
+                  }`}
                 >
-                  Reject
+                  {leave.status === 'REJECTED' ? 'Rejected' : 'Reject'}
                 </button>
               </div>
             </div>
           ))}
-
-          {pendingLeaves.length === 0 && (
-            <div className="text-center py-4 text-xs text-slate-400 bg-slate-50 rounded-xl">
-              All staff leave requests are up to date
-            </div>
-          )}
         </div>
       </div>
 

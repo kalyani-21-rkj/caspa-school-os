@@ -4,7 +4,6 @@ import { WebLoginPage } from './components/auth/WebLoginPage';
 import { WebRegisterPage } from './components/auth/WebRegisterPage';
 import { PortalRoleLoginPage } from './components/auth/PortalRoleLoginPage';
 import { Header } from './components/Header';
-import { RoleType } from './types';
 
 // Admin Module Components
 import { AdminFixedSidebar } from './components/admin/AdminFixedSidebar';
@@ -18,6 +17,7 @@ import { AdminSafetyScreen } from './components/admin/AdminSafetyScreen';
 import { AdminTransportScreen } from './components/admin/AdminTransportScreen';
 import { AdminApprovalsScreen } from './components/admin/AdminApprovalsScreen';
 import { AdminSettingsScreen } from './components/admin/AdminSettingsScreen';
+import { AdminEnterpriseErpHub } from './components/admin/AdminEnterpriseErpHub';
 
 // Teacher Module Components
 import { TeacherFixedSidebar } from './components/teacher/TeacherFixedSidebar';
@@ -28,6 +28,7 @@ import { TeacherAttendanceScreen } from './components/teacher/TeacherAttendanceS
 import { TeacherTasksScreen } from './components/teacher/TeacherTasksScreen';
 import { TeacherMarksScreen } from './components/teacher/TeacherMarksScreen';
 import { TeacherParentCommsScreen } from './components/teacher/TeacherParentCommsScreen';
+import { TeacherHrAndApprovalsScreen } from './components/teacher/TeacherHrAndApprovalsScreen';
 
 // Student Module Components
 import { StudentFixedSidebar } from './components/student/StudentFixedSidebar';
@@ -75,19 +76,16 @@ import { ParentCertificatesScreen } from './components/parent/ParentCertificates
 import { ParentMessagesScreen } from './components/parent/ParentMessagesScreen';
 
 // Shared Components
-import { DashboardView } from './components/DashboardView';
 import { CaspaAiView } from './components/CaspaAiView';
 import { CodeExportModal } from './components/CodeExportModal';
-import { CheckCircle2, Shield } from 'lucide-react';
+import { CheckCircle2 } from 'lucide-react';
 
 const MainLayout: React.FC = () => {
   const {
     isAuthenticated,
     authView,
     setAuthView,
-    canAccessAllModules,
     currentRole,
-    setRole,
     activeTab,
     setActiveTab,
     toastMessage,
@@ -128,15 +126,6 @@ const MainLayout: React.FC = () => {
   const isVicePrincipal = currentRole === 'VICE_PRINCIPAL';
   const isParent = currentRole === 'PARENT';
 
-  const adminModuleTabs: { role: RoleType; label: string }[] = [
-    { role: 'ADMIN', label: 'Admin Module' },
-    { role: 'PRINCIPAL', label: 'Principal Module' },
-    { role: 'VICE_PRINCIPAL', label: 'Vice Principal Module' },
-    { role: 'TEACHER', label: 'Teacher Module' },
-    { role: 'PARENT', label: 'Parent Module' },
-    { role: 'STUDENT', label: 'Student Module' },
-  ];
-
   return (
     <div className="h-screen w-screen overflow-hidden flex flex-col bg-[#F8FAFC] font-sans text-bodyText antialiased">
       {/* Top Application Header */}
@@ -144,31 +133,6 @@ const MainLayout: React.FC = () => {
         onOpenCodeExport={() => setIsCodeExportOpen(true)}
         onOpenCaspa={() => setActiveTab('caspa')}
       />
-
-      {/* Admin Master All-Module Bar (Only visible when logged in as Admin) */}
-      {canAccessAllModules && (
-        <div className="bg-[#092238] border-b border-[#16426a] px-4 py-1.5 flex items-center justify-between overflow-x-auto scrollbar-none shrink-0">
-          <div className="flex items-center space-x-2 text-[11px] text-cyan-300 font-bold shrink-0 mr-3">
-            <Shield className="w-3.5 h-3.5" />
-            <span>Admin All-Module Authorization:</span>
-          </div>
-          <div className="flex items-center space-x-1.5">
-            {adminModuleTabs.map((m) => (
-              <button
-                key={m.role}
-                onClick={() => setRole(m.role)}
-                className={`px-3 py-1 rounded-lg text-[11px] font-bold transition shrink-0 ${
-                  currentRole === m.role
-                    ? 'bg-teal text-white shadow-2xs'
-                    : 'bg-white/5 text-slate-300 hover:bg-white/15 hover:text-white'
-                }`}
-              >
-                {m.label}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
 
       <div className="flex-1 flex min-h-0 w-full overflow-hidden relative">
         {/* Desktop Fixed Non-Sliding Sidebar (strictly hidden on mobile md:flex) */}
@@ -219,6 +183,7 @@ const MainLayout: React.FC = () => {
                 {activeTab === 'finance' && <AdminFinanceScreen />}
                 {activeTab === 'safety' && <AdminSafetyScreen />}
                 {activeTab === 'transport' && <AdminTransportScreen />}
+                {activeTab === 'erp-hub' && <AdminEnterpriseErpHub />}
                 {activeTab === 'approvals' && <AdminApprovalsScreen />}
                 {(activeTab === 'rbac' || activeTab === 'settings') && <AdminSettingsScreen />}
                 {activeTab === 'caspa' && <CaspaAiView />}
@@ -259,6 +224,7 @@ const MainLayout: React.FC = () => {
                 {activeTab === 'tasks' && <TeacherTasksScreen />}
                 {activeTab === 'marks' && <TeacherMarksScreen />}
                 {activeTab === 'comms' && <TeacherParentCommsScreen />}
+                {activeTab === 'hr' && <TeacherHrAndApprovalsScreen />}
                 {activeTab === 'caspa' && <CaspaAiView />}
               </>
             )}
@@ -274,6 +240,7 @@ const MainLayout: React.FC = () => {
                 {activeTab === 'finance' && <PrincipalFinanceScreen />}
                 {activeTab === 'safety' && <PrincipalSafetyScreen />}
                 {activeTab === 'operations' && <PrincipalOperationsScreen />}
+                {activeTab === 'erp-hub' && <AdminEnterpriseErpHub />}
                 {activeTab === 'approvals' && <PrincipalApprovalsScreen />}
                 {activeTab === 'caspa' && <CaspaAiView />}
               </>

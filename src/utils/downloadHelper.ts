@@ -6,6 +6,7 @@ const sanitizePdfText = (text: string): string => {
     .replace(/\\/g, '\\\\')
     .replace(/\(/g, '\\(')
     .replace(/\)/g, '\\)')
+    .replace(/₹/g, 'Rs. ')
     .replace(/•/g, '-')
     .replace(/—/g, '-')
     .replace(/–/g, '-')
@@ -494,3 +495,274 @@ export const downloadStudyMaterialPdf = (params: {
     isAiGenerated: false,
   });
 };
+
+export interface InstituteFinancePdfParams {
+  fiscalYear?: string;
+  principalName?: string;
+  collectedMtd?: string;
+  outstanding?: string;
+  overdue?: string;
+  collectionRate?: string;
+  totalPayrollMtd?: string;
+  defaulters?: {
+    studentName: string;
+    gradeSection: string;
+    amount: string;
+    status: string;
+    noticeLevel: string;
+  }[];
+  payrollRecords?: {
+    employeeId: string;
+    staffName: string;
+    designation: string;
+    monthlySalaryFormatted: string;
+    bankName: string;
+    accountNumberMasked: string;
+    status: string;
+    utrNumber?: string;
+  }[];
+}
+
+export const downloadInstituteFinancePdf = (params: InstituteFinancePdfParams = {}): void => {
+  const {
+    fiscalYear = 'FY 2025-2026',
+    principalName = 'Dr. Mehta',
+    collectedMtd = 'Rs. 18.2L (84% of Target)',
+    outstanding = 'Rs. 4.6L (142 Accounts)',
+    overdue = 'Rs. 1.2L (38 Accounts)',
+    collectionRate = '87% (+2.4% vs Term 1)',
+    totalPayrollMtd = 'Rs. 42.0L',
+    defaulters = [],
+    payrollRecords = [],
+  } = params;
+
+  const commands: string[] = [];
+
+  // Header Banner
+  commands.push('0.05 0.17 0.28 rg 36 698 540 60 re f');
+  commands.push(
+    `BT /F2 15 Tf 1 1 1 rg 48 734 Td (${sanitizePdfText(
+      `CASPA INSTITUTIONAL FINANCE & PAYROLL AUDIT LEDGER (${fiscalYear})`
+    )}) Tj ET`
+  );
+  commands.push(
+    `BT /F1 9.5 Tf 0.85 0.94 0.98 rg 48 714 Td (${sanitizePdfText(
+      `Authorized by: ${principalName} (Principal & Executive Head)  |  ISO 27001 Financial Governance`
+    )}) Tj ET`
+  );
+
+  // Executive Summary Box
+  commands.push('0.95 0.97 0.99 rg 36 624 540 62 re f');
+  commands.push('0.80 0.85 0.90 RG 1 w 36 624 540 62 re S');
+  commands.push('BT /F2 11 Tf 0.05 0.17 0.28 rg 48 668 Td (1. EXECUTIVE REVENUE & COLLECTION METRICS) Tj ET');
+  commands.push(`BT /F1 9.5 Tf 0.15 0.25 0.35 rg 48 650 Td (${sanitizePdfText(`Collected MTD: ${collectedMtd}`)}) Tj ET`);
+  commands.push(`BT /F1 9.5 Tf 0.15 0.25 0.35 rg 305 650 Td (${sanitizePdfText(`Collection Rate: ${collectionRate}`)}) Tj ET`);
+  commands.push(`BT /F1 9.5 Tf 0.15 0.25 0.35 rg 48 634 Td (${sanitizePdfText(`Outstanding Balance: ${outstanding}`)}) Tj ET`);
+  commands.push(`BT /F1 9.5 Tf 0.65 0.15 0.20 rg 305 634 Td (${sanitizePdfText(`Overdue Arrears: ${overdue}  |  Payroll MTD: ${totalPayrollMtd}`)}) Tj ET`);
+
+  let y = 598;
+
+  // Cohort Breakdown Section
+  commands.push('0.09 0.42 0.53 rg 36 ' + (y - 4) + ' 4 16 re f');
+  commands.push(`BT /F2 11 Tf 0.05 0.17 0.28 rg 46 ${y} Td (2. COHORT FEE COLLECTION VELOCITY) Tj ET`);
+  y -= 18;
+  const cohorts = [
+    'Grade 11 Cohort: 88 / 99 Scholars Paid (89% Completion) - On Track',
+    'Grade 10 Cohort: 92 / 107 Scholars Paid (86% Completion) - On Track',
+    'Grade 9 Cohort:  88 / 109 Scholars Paid (81% Completion) - 21 Reminders Dispatched',
+    'Operating Expenses (OPEX): Utilities Rs. 3,40,000 | Science Labs Rs. 1,20,000 | Security AMC Rs. 85,000',
+  ];
+  for (const line of cohorts) {
+    commands.push(`BT /F1 9.5 Tf 0.20 0.26 0.34 rg 48 ${y} Td (${sanitizePdfText(line)}) Tj ET`);
+    y -= 14;
+  }
+
+  y -= 8;
+
+  // Defaulters Section
+  commands.push('0.09 0.42 0.53 rg 36 ' + (y - 4) + ' 4 16 re f');
+  commands.push(`BT /F2 11 Tf 0.05 0.17 0.28 rg 46 ${y} Td (3. OVERDUE FEE ACCOUNTS & NOTICE LEDGER) Tj ET`);
+  y -= 18;
+  if (defaulters.length > 0) {
+    for (const d of defaulters) {
+      commands.push(
+        `BT /F1 9.5 Tf 0.20 0.26 0.34 rg 48 ${y} Td (${sanitizePdfText(
+          `- ${d.studentName} (${d.gradeSection}) | Due: ${d.amount} | Status: ${d.status} | Action: ${d.noticeLevel}`
+        )}) Tj ET`
+      );
+      y -= 14;
+    }
+  } else {
+    commands.push(`BT /F1 9.5 Tf 0.20 0.26 0.34 rg 48 ${y} Td (- All overdue accounts have been reconciled.) Tj ET`);
+    y -= 14;
+  }
+
+  y -= 10;
+
+  // Staff Payroll Summary Table
+  commands.push('0.09 0.42 0.53 rg 36 ' + (y - 4) + ' 4 16 re f');
+  commands.push(`BT /F2 11 Tf 0.05 0.17 0.28 rg 46 ${y} Td (4. STAFF PAYROLL SUMMARY & BANK DISBURSEMENT LEDGER) Tj ET`);
+  y -= 22;
+
+  commands.push(`0.05 0.17 0.28 rg 36 ${y - 5} 540 20 re f`);
+  commands.push(`BT /F2 9 Tf 1 1 1 rg 44 ${y} Td (EMP ID & FACULTY NAME) Tj ET`);
+  commands.push(`BT /F2 9 Tf 1 1 1 rg 215 ${y} Td (SALARY) Tj ET`);
+  commands.push(`BT /F2 9 Tf 1 1 1 rg 290 ${y} Td (BANK ACCOUNT) Tj ET`);
+  commands.push(`BT /F2 9 Tf 1 1 1 rg 435 ${y} Td (STATUS / UTR REF) Tj ET`);
+  y -= 20;
+
+  for (const p of payrollRecords) {
+    if (y < 75) break;
+    commands.push(`0.90 0.92 0.95 RG 0.6 w 36 ${y - 6} 540 19 re S`);
+    commands.push(
+      `BT /F2 8.5 Tf 0.05 0.17 0.28 rg 44 ${y} Td (${sanitizePdfText(
+        `${p.employeeId} - ${p.staffName}`
+      ).slice(0, 32)}) Tj ET`
+    );
+    commands.push(`BT /F2 8.5 Tf 0.09 0.42 0.53 rg 215 ${y} Td (${sanitizePdfText(p.monthlySalaryFormatted)}) Tj ET`);
+    commands.push(
+      `BT /F1 8.5 Tf 0.25 0.32 0.42 rg 290 ${y} Td (${sanitizePdfText(
+        `${p.bankName} ${p.accountNumberMasked}`
+      ).slice(0, 26)}) Tj ET`
+    );
+    const statusLabel =
+      p.status === 'PAID_TO_BANK'
+        ? `CREDITED (${p.utrNumber || 'NEFT'})`
+        : 'PENDING DISBURSEMENT';
+    commands.push(`BT /F2 8 Tf 0.08 0.45 0.28 rg 435 ${y} Td (${sanitizePdfText(statusLabel).slice(0, 24)}) Tj ET`);
+    y -= 20;
+  }
+
+  // Footer
+  commands.push('0.80 0.85 0.90 RG 0.8 w 36 52 540 0 re S');
+  commands.push(
+    `BT /F1 8 Tf 0.40 0.46 0.54 rg 36 38 Td (${sanitizePdfText(
+      `Digitally Signed by ${principalName} • CASPA Institutional Finance & Bursar Office • Official PDF Export`
+    )}) Tj ET`
+  );
+
+  const blob = buildPdfBlob(commands.join('\n'));
+  triggerBlobDownload(blob, `CASPA_Institutional_Finance_and_Payroll_${fiscalYear.replace(/\s+/g, '_')}.pdf`);
+};
+
+export interface StaffPayrollSlipParams {
+  employeeId: string;
+  staffName: string;
+  designation: string;
+  department: string;
+  salaryGrade: string;
+  monthlySalaryFormatted: string;
+  bankName: string;
+  accountNumberMasked: string;
+  ifscCode: string;
+  monthYear: string;
+  status: string;
+  utrNumber?: string;
+  disbursedAt?: string;
+}
+
+export const downloadStaffPayrollSlipPdf = (params: StaffPayrollSlipParams): void => {
+  const commands: string[] = [];
+
+  // Header Banner
+  commands.push('0.05 0.17 0.28 rg 36 695 540 62 re f');
+  commands.push('BT /F2 16 Tf 1 1 1 rg 48 732 Td (CASPA CENTRAL CAMPUS - OFFICIAL SALARY PAYSLIP) Tj ET');
+  commands.push(
+    `BT /F1 10 Tf 0.85 0.94 0.98 rg 48 712 Td (${sanitizePdfText(
+      `Pay Period: ${params.monthYear}  |  Automated Bank Mandate Advice  |  Bursar Verified`
+    )}) Tj ET`
+  );
+
+  // Employee Details Box
+  commands.push('0.95 0.97 0.99 rg 36 595 540 84 re f');
+  commands.push('0.80 0.85 0.90 RG 1 w 36 595 540 84 re S');
+  commands.push(`BT /F2 11 Tf 0.05 0.17 0.28 rg 48 660 Td (${sanitizePdfText(`Faculty Name: ${params.staffName}`)}) Tj ET`);
+  commands.push(`BT /F2 10 Tf 0.09 0.42 0.53 rg 340 660 Td (${sanitizePdfText(`Employee ID: ${params.employeeId}`)}) Tj ET`);
+  commands.push(`BT /F1 10 Tf 0.20 0.26 0.34 rg 48 642 Td (${sanitizePdfText(`Designation: ${params.designation}`)}) Tj ET`);
+  commands.push(`BT /F1 10 Tf 0.20 0.26 0.34 rg 340 642 Td (${sanitizePdfText(`Department: ${params.department}`)}) Tj ET`);
+  commands.push(`BT /F1 10 Tf 0.20 0.26 0.34 rg 48 624 Td (${sanitizePdfText(`Pay Scale: ${params.salaryGrade}`)}) Tj ET`);
+  commands.push(`BT /F2 10 Tf 0.08 0.48 0.28 rg 340 624 Td (${sanitizePdfText(`Status: ${params.status === 'PAID_TO_BANK' ? 'CREDITED TO BANK' : 'PENDING'}`)}) Tj ET`);
+  commands.push(`BT /F1 9.5 Tf 0.25 0.32 0.42 rg 48 606 Td (${sanitizePdfText(`Bank Account: ${params.bankName} (${params.accountNumberMasked}) | IFSC: ${params.ifscCode}`)}) Tj ET`);
+
+  // Disbursement Box
+  commands.push('0.93 0.98 0.95 rg 36 505 540 74 re f');
+  commands.push('0.16 0.65 0.42 RG 1 w 36 505 540 74 re S');
+  commands.push('BT /F2 12 Tf 0.08 0.48 0.28 rg 48 558 Td (NET MONTHLY DISBURSEMENT & BANK TRANSFER CONFIRMATION) Tj ET');
+  commands.push(`BT /F2 18 Tf 0.05 0.17 0.28 rg 48 534 Td (${sanitizePdfText(`Net Credited Amount: ${params.monthlySalaryFormatted}`)}) Tj ET`);
+  commands.push(
+    `BT /F1 10 Tf 0.15 0.35 0.25 rg 48 515 Td (${sanitizePdfText(
+      `UTR / NEFT Reference: ${params.utrNumber || 'Pending Batch Release'}   |   Timestamp: ${params.disbursedAt || 'Scheduled'}`
+    )}) Tj ET`
+  );
+
+  // Signatures
+  commands.push('0.40 0.45 0.52 RG 1 w 48 400 180 0 re S');
+  commands.push('BT /F2 10 Tf 0.05 0.17 0.28 rg 48 384 Td (Dr. Mehta - Principal & Executive Head) Tj ET');
+  commands.push('BT /F1 9 Tf 0.40 0.45 0.52 rg 48 370 Td (CASPA Central Campus) Tj ET');
+
+  const blob = buildPdfBlob(commands.join('\n'));
+  triggerBlobDownload(blob, `Payslip_${params.staffName.replace(/\s+/g, '_')}_${params.monthYear.replace(/\s+/g, '_')}.pdf`);
+};
+
+export const downloadSafeguardingCasePdf = (caseData: {
+  caseNo: string;
+  title: string;
+  category: string;
+  severity: string;
+  studentMaskedId: string;
+  assignedTo: string;
+  currentStep: number;
+  notesCount: string;
+  details?: string;
+}): void => {
+  const commands: string[] = [];
+  commands.push('0.55 0.10 0.18 rg 36 695 540 62 re f');
+  commands.push(`BT /F2 15 Tf 1 1 1 rg 48 732 Td (${sanitizePdfText(`CASPA SAFEGUARDING & CHILD PROTECTION DOSSIER - ${caseData.caseNo}`)}) Tj ET`);
+  commands.push(`BT /F1 10 Tf 0.98 0.88 0.90 rg 48 712 Td (${sanitizePdfText(`Classification: ${caseData.category} | Severity: ${caseData.severity} | ISO 27001 Confidential`)}) Tj ET`);
+
+  let y = 660;
+  const lines = [
+    `Case Reference: ${caseData.caseNo} (${caseData.studentMaskedId})`,
+    `Incident Headline: ${caseData.title}`,
+    `Lead Investigator: ${caseData.assignedTo}`,
+    `Current Resolution Stage: Stage ${caseData.currentStep} of 4 (${caseData.currentStep === 4 ? 'FORMALLY RESOLVED' : 'ACTIVE INVESTIGATION'})`,
+    `Evidence Logged: ${caseData.notesCount}`,
+    '',
+    'OFFICIAL CASE NARRATIVE & EXECUTIVE DIRECTIVES:',
+    ...(caseData.details || 'Initial triage completed. Both parents summoned for joint executive conference.').split('\n'),
+  ];
+
+  for (const rawLine of lines) {
+    const wrapped = wrapText(rawLine || ' ', 85);
+    for (const w of wrapped) {
+      if (y < 70) break;
+      commands.push(`BT /F1 10 Tf 0.15 0.20 0.28 rg 48 ${y} Td (${sanitizePdfText(w)}) Tj ET`);
+      y -= 16;
+    }
+  }
+
+  const blob = buildPdfBlob(commands.join('\n'));
+  triggerBlobDownload(blob, `Safeguarding_${caseData.caseNo.replace(/[^a-zA-Z0-9_-]/g, '_')}.pdf`);
+};
+
+export const downloadTextAsPdf = (fileName: string, headerTitle: string, bodyLines: string[]): void => {
+  const commands: string[] = [];
+  commands.push('0.07 0.23 0.36 rg 36 698 540 58 re f');
+  commands.push(`BT /F2 14 Tf 1 1 1 rg 48 730 Td (${sanitizePdfText(headerTitle.slice(0, 72))}) Tj ET`);
+  commands.push('BT /F1 9.5 Tf 0.85 0.94 0.98 rg 48 712 Td (CASPA School OS • Official Enterprise Export • Verified & Watermarked) Tj ET');
+
+  let y = 668;
+  for (const rawLine of bodyLines) {
+    const wrapped = wrapText(rawLine || ' ', 86);
+    for (const w of wrapped) {
+      if (y < 60) break;
+      commands.push(`BT /F1 9.5 Tf 0.15 0.20 0.28 rg 48 ${y} Td (${sanitizePdfText(w)}) Tj ET`);
+      y -= 15;
+    }
+  }
+
+  const blob = buildPdfBlob(commands.join('\n'));
+  triggerBlobDownload(blob, fileName);
+};
+
+

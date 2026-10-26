@@ -11,6 +11,7 @@ import {
   ChevronRight,
   Shield,
   UserCheck,
+  Building2,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
@@ -23,15 +24,24 @@ export const TeacherFixedSidebar: React.FC<TeacherFixedSidebarProps> = ({
   currentTab,
   onSelectTab,
 }) => {
-  const { currentUser, logout, setRole } = useApp();
+  const { currentUser, logout, teacherTasks } = useApp();
+
+  const submittedTasksCount = teacherTasks.filter((t) => t.latestStudentSubmission).length;
 
   const navItems = [
     { id: 'home', label: 'Teaching Overview', icon: LayoutDashboard, badge: 'Today' },
     { id: 'classes', label: 'My Classes', icon: GraduationCap, badge: '4' },
     { id: 'attendance', label: 'Mark Attendance', icon: ClipboardCheck, badge: 'Live', badgeLive: true },
-    { id: 'tasks', label: 'Tasks & Homework', icon: FileText, badge: '4 Active' },
+    {
+      id: 'tasks',
+      label: 'Tasks & Homework',
+      icon: FileText,
+      badge: submittedTasksCount > 0 ? `${submittedTasksCount} New Sub.` : `${teacherTasks.length} Active`,
+      badgeLive: submittedTasksCount > 0,
+    },
     { id: 'marks', label: 'Marks & Feedback', icon: Award, badge: 'Unit Test 2' },
     { id: 'comms', label: 'Parent Hub (PTM)', icon: MessageSquare, badge: '3 Unread' },
+    { id: 'hr', label: 'Leave, Payroll & Approvals', icon: Building2, badge: 'HR Sync' },
     { id: 'caspa', label: 'CASPA Smart AI', icon: Sparkles, highlight: true },
   ];
 
