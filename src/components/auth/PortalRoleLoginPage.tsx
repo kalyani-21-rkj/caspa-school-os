@@ -7,6 +7,8 @@ import {
   ChevronRight,
   Smartphone,
   UserPlus,
+  AlertCircle,
+  Sparkles,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { RoleType } from '../../types';
@@ -32,118 +34,196 @@ export const PortalRoleLoginPage: React.FC<PortalRoleLoginPageProps> = ({
   const [otpCode, setOtpCode] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
+  const [idTouched, setIdTouched] = useState(false);
+  const [passwordTouched, setPasswordTouched] = useState(false);
+  const [submitAttempted, setSubmitAttempted] = useState(false);
+
+  const MIN_PASSWORD_LENGTH = 5;
+
   const effectiveRole: RoleType =
     primaryTab === 'STAFF' ? staffSubRole : primaryTab;
 
   const roleConfig: Record<
     RoleType,
-    { label: string; placeholder: string; defaultId: string }
+    { label: string; placeholder: string; defaultId: string; defaultPass: string }
   > = {
     STUDENT: {
       label: 'Email or Student ID',
-      placeholder: 'e.g. STU-2024-8890 or email',
-      defaultId: 'STU-2024-8890',
+      placeholder: 'e.g. student@caspaschool.org',
+      defaultId: 'student@caspaschool.org',
+      defaultPass: 'student123',
     },
     PARENT: {
       label: 'Email or Parent ID',
       placeholder: 'e.g. anita.sharma@caspaschool.org',
       defaultId: 'anita.sharma@caspaschool.org',
+      defaultPass: 'parent123',
     },
     TEACHER: {
       label: 'Email or Teacher ID',
       placeholder: 'e.g. teacher@caspaschool.org',
       defaultId: 'teacher@caspaschool.org',
+      defaultPass: 'teacher123',
     },
     PRINCIPAL: {
       label: 'Email or Principal ID',
       placeholder: 'e.g. principal@caspaschool.org',
       defaultId: 'principal@caspaschool.org',
+      defaultPass: 'principal123',
     },
     VICE_PRINCIPAL: {
       label: 'Email or VP Staff ID',
       placeholder: 'e.g. s.jenkins@caspa.edu',
       defaultId: 's.jenkins@caspa.edu',
+      defaultPass: 'vp12345',
     },
     ADMIN: {
       label: 'Email or Admin ID',
       placeholder: 'e.g. admin@caspaschool.org',
       defaultId: 'admin@caspaschool.org',
+      defaultPass: 'admin123',
     },
     SUPER_ADMIN: {
       label: 'Email or Admin ID',
       placeholder: 'e.g. admin@caspaschool.org',
       defaultId: 'admin@caspaschool.org',
+      defaultPass: 'admin123',
     },
     SAFETY_OFFICER: {
       label: 'Email or Staff ID',
       placeholder: 'e.g. safety@caspaschool.org',
       defaultId: 'safety@caspaschool.org',
+      defaultPass: 'safety123',
     },
     COUNSELLOR: {
       label: 'Email or Staff ID',
       placeholder: 'e.g. counsellor@caspaschool.org',
       defaultId: 'counsellor@caspaschool.org',
+      defaultPass: 'counsellor123',
     },
     ACCOUNTS: {
       label: 'Email or Staff ID',
       placeholder: 'e.g. accounts@caspaschool.org',
       defaultId: 'accounts@caspaschool.org',
+      defaultPass: 'accounts123',
     },
     TRANSPORT: {
       label: 'Email or Staff ID',
       placeholder: 'e.g. transport@caspaschool.org',
       defaultId: 'transport@caspaschool.org',
+      defaultPass: 'transport123',
     },
     HOSTEL_WARDEN: {
       label: 'Email or Staff ID',
       placeholder: 'e.g. warden@caspaschool.org',
       defaultId: 'warden@caspaschool.org',
+      defaultPass: 'warden123',
     },
   };
 
   const currentConfig = roleConfig[effectiveRole];
 
+  const isIdValid = identifier.trim().length > 0;
+
+  const idError =
+    (idTouched || submitAttempted) && !isIdValid
+      ? 'Please fill in your email or username'
+      : null;
+
+  const passwordError =
+    !isOtpMode && (passwordTouched || submitAttempted)
+      ? password.length === 0
+        ? 'Please enter your password'
+        : password.length < MIN_PASSWORD_LENGTH
+        ? `Password must be at least ${MIN_PASSWORD_LENGTH} characters`
+        : null
+      : isOtpMode && submitAttempted && otpCode.trim().length < 4
+      ? 'Please enter a valid OTP code'
+      : null;
+
+  const handleQuickFillDemo = () => {
+    setIdentifier(currentConfig.defaultId);
+    if (password.length < MIN_PASSWORD_LENGTH) {
+      setPassword(currentConfig.defaultPass);
+    }
+    setIdTouched(false);
+    setPasswordTouched(false);
+    setSubmitAttempted(false);
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const loginId = identifier.trim() || currentConfig.defaultId;
+    setSubmitAttempted(true);
+    setIdTouched(true);
+    setPasswordTouched(true);
+
+    if (!identifier.trim()) {
+      showToast('Please fill in your email or username');
+      return;
+    }
+
+    if (!isOtpMode) {
+      if (!password) {
+        showToast('Please enter your password');
+        return;
+      }
+      if (password.length < MIN_PASSWORD_LENGTH) {
+        showToast(`Password must be at least ${MIN_PASSWORD_LENGTH} characters`);
+        return;
+      }
+    } else if (otpCode.trim().length < 4) {
+      showToast('Please enter a valid OTP code');
+      return;
+    }
+
     setIsLoading(true);
     setTimeout(() => {
-      login(loginId, password || 'password123', effectiveRole);
+      login(identifier.trim(), password, effectiveRole);
       setIsLoading(false);
     }, 300);
   };
 
   return (
-    <div className="min-h-screen w-full bg-[#F8FAFC] flex flex-col items-center justify-center px-5 py-8 font-sans text-bodyText">
-      {/* Main Sign-In Container (Exact match to Image 2) */}
-      <div className="w-full max-w-[400px] bg-[#F8FAFC] sm:bg-white sm:rounded-3xl sm:border sm:border-slate-200/80 sm:shadow-xl sm:px-8 sm:py-9">
+    <div className="min-h-screen w-full bg-[#F8FAFC] flex flex-col items-center justify-center px-4 py-8 font-sans text-bodyText">
+      {/* Main Sign-In Card */}
+      <div className="w-full max-w-[400px] bg-white rounded-3xl border border-slate-200/80 shadow-xl px-6 py-7 sm:px-8 sm:py-8">
         {/* Top Centered CASPA Logo Box */}
         <div className="flex justify-center">
-          <div className="bg-[#EFEFEF] px-4 py-0.5 inline-flex items-center justify-center">
+          <div className="bg-slate-50 border border-slate-200/70 rounded-2xl p-2 inline-flex items-center justify-center">
             <img
               src="/assets/aistudio/caspa_logo_7f187f6a.png"
               alt="CASPA School OS"
-              className="w-36 h-36 sm:w-40 sm:h-40 object-contain"
+              className="w-24 h-24 sm:w-28 sm:h-28 object-contain"
             />
           </div>
         </div>
 
         {/* Welcome Back Heading */}
-        <div className="text-center mt-5 space-y-1">
-          <h1 className="text-[26px] font-extrabold text-[#0E2C48] tracking-tight">
+        <div className="text-center mt-4 space-y-1">
+          <h1 className="text-2xl font-extrabold text-[#0E2C48] tracking-tight">
             Welcome Back
           </h1>
-          <p className="text-[13px] text-[#64748B]">
+          <p className="text-xs text-[#64748B]">
             Sign in to continue to your dashboard.
           </p>
         </div>
 
         {/* SIGN IN AS Selector */}
-        <div className="mt-6">
-          <span className="text-[11px] font-bold text-[#64748B] uppercase tracking-wider block mb-2">
-            SIGN IN AS
-          </span>
-          <div className="grid grid-cols-4 gap-2 p-1.5 bg-white/70 rounded-2xl border border-slate-100">
+        <div className="mt-5">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[10px] font-extrabold text-[#64748B] uppercase tracking-wider">
+              SIGN IN AS
+            </span>
+            <button
+              type="button"
+              onClick={handleQuickFillDemo}
+              className="inline-flex items-center space-x-1 text-[10px] font-bold text-[#176B87] hover:underline"
+            >
+              <Sparkles className="w-3 h-3" />
+              <span>Quick Fill {effectiveRole}</span>
+            </button>
+          </div>
+          <div className="grid grid-cols-4 gap-2 p-1.5 bg-slate-50 rounded-2xl border border-slate-200/70">
             {(
               [
                 { id: 'STUDENT', label: 'Student' },
@@ -159,11 +239,11 @@ export const PortalRoleLoginPage: React.FC<PortalRoleLoginPageProps> = ({
                   type="button"
                   onClick={() => {
                     setPrimaryTab(tab.id);
-                    setIdentifier('');
+                    setSubmitAttempted(false);
                   }}
-                  className={`py-2.5 px-2 rounded-xl text-xs transition text-center ${
+                  className={`py-2 px-2 rounded-xl text-xs transition text-center ${
                     isSelected
-                      ? 'bg-[#E5F1F5] border-[1.5px] border-[#176B87] text-[#176B87] font-bold shadow-2xs'
+                      ? 'bg-[#176B87] text-white font-bold shadow-xs'
                       : 'bg-white border border-slate-200 text-[#64748B] font-medium hover:border-slate-300'
                   }`}
                 >
@@ -188,7 +268,7 @@ export const PortalRoleLoginPage: React.FC<PortalRoleLoginPageProps> = ({
                   type="button"
                   onClick={() => {
                     setStaffSubRole(sub.role);
-                    setIdentifier('');
+                    setSubmitAttempted(false);
                   }}
                   className={`py-1.5 px-2 rounded-lg text-[11px] font-bold transition ${
                     staffSubRole === sub.role
@@ -204,22 +284,33 @@ export const PortalRoleLoginPage: React.FC<PortalRoleLoginPageProps> = ({
         </div>
 
         {/* Form Fields */}
-        <form onSubmit={handleSubmit} className="mt-5 space-y-4">
+        <form onSubmit={handleSubmit} noValidate className="mt-5 space-y-4">
           {/* Email or ID Input */}
           <div className="space-y-1.5">
             <label className="text-xs font-bold text-[#1E293B] block">
               {currentConfig.label}
             </label>
             <div className="relative">
-              <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
+              <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
               <input
                 type="text"
                 value={identifier}
+                onBlur={() => setIdTouched(true)}
                 onChange={(e) => setIdentifier(e.target.value)}
                 placeholder={currentConfig.placeholder}
-                className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 bg-white text-slate-800 placeholder-slate-400 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-[#176B87]/20 focus:border-[#176B87] transition"
+                className={`w-full pl-10 pr-4 py-2.5 rounded-xl border bg-white text-slate-800 placeholder-slate-400 text-xs focus:outline-none focus:ring-2 transition ${
+                  idError
+                    ? 'border-rose-400 focus:ring-rose-500/20 focus:border-rose-500'
+                    : 'border-slate-200 focus:ring-[#176B87]/20 focus:border-[#176B87]'
+                }`}
               />
             </div>
+            {idError && (
+              <p className="flex items-center space-x-1 text-rose-600 text-[11px] font-medium pt-0.5">
+                <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                <span>{idError}</span>
+              </p>
+            )}
           </div>
 
           {/* Password or OTP */}
@@ -229,22 +320,33 @@ export const PortalRoleLoginPage: React.FC<PortalRoleLoginPageProps> = ({
                 Password
               </label>
               <div className="relative">
-                <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
+                <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
                 <input
                   type={showPassword ? 'text' : 'password'}
                   value={password}
+                  onBlur={() => setPasswordTouched(true)}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter your password"
-                  className="w-full pl-10 pr-10 py-3 rounded-xl border border-slate-200 bg-white text-slate-800 placeholder-slate-400 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-[#176B87]/20 focus:border-[#176B87] transition"
+                  placeholder="Enter password (min. 5 characters)"
+                  className={`w-full pl-10 pr-10 py-2.5 rounded-xl border bg-white text-slate-800 placeholder-slate-400 text-xs focus:outline-none focus:ring-2 transition ${
+                    passwordError
+                      ? 'border-rose-400 focus:ring-rose-500/20 focus:border-rose-500'
+                      : 'border-slate-200 focus:ring-[#176B87]/20 focus:border-[#176B87]'
+                  }`}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3.5 top-3.5 text-slate-400 hover:text-slate-600 transition"
+                  className="absolute right-3.5 top-3 text-slate-400 hover:text-slate-600 transition"
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
+              {passwordError && (
+                <p className="flex items-center space-x-1 text-rose-600 text-[11px] font-medium pt-0.5">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                  <span>{passwordError}</span>
+                </p>
+              )}
             </div>
           ) : (
             <div className="space-y-1.5">
@@ -256,8 +358,14 @@ export const PortalRoleLoginPage: React.FC<PortalRoleLoginPageProps> = ({
                 value={otpCode}
                 onChange={(e) => setOtpCode(e.target.value)}
                 placeholder="Enter 6-digit OTP"
-                className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-slate-800 text-sm font-mono tracking-widest text-center focus:outline-none focus:border-[#176B87]"
+                className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-800 text-sm font-mono tracking-widest text-center focus:outline-none focus:border-[#176B87]"
               />
+              {passwordError && (
+                <p className="flex items-center space-x-1 text-rose-600 text-[11px] font-medium pt-0.5">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                  <span>{passwordError}</span>
+                </p>
+              )}
             </div>
           )}
 
@@ -276,44 +384,36 @@ export const PortalRoleLoginPage: React.FC<PortalRoleLoginPageProps> = ({
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full py-3.5 bg-[#176B87] hover:bg-[#125870] text-white font-bold rounded-xl text-sm transition shadow-sm flex items-center justify-center space-x-1.5 disabled:opacity-50"
+            className="w-full py-3 bg-gradient-to-r from-[#0E2C48] to-[#176B87] hover:from-[#0A2136] hover:to-[#125870] text-white font-bold rounded-xl text-xs sm:text-sm transition shadow-md flex items-center justify-center space-x-1.5 disabled:opacity-50"
           >
             <span>{isLoading ? 'Signing In...' : 'Sign In'}</span>
             <ChevronRight className="w-4 h-4" />
           </button>
 
-          {/* Registration Option Placed Right After Sign In Button */}
-          <button
-            type="button"
-            onClick={onNavigateToRegister}
-            className="w-full py-3 bg-[#E5F1F5] hover:bg-[#d5e8ef] border border-[#176B87]/30 text-[#176B87] font-bold rounded-xl text-xs sm:text-sm transition flex items-center justify-center space-x-2"
-          >
-            <UserPlus className="w-4 h-4" />
-            <span>Register New Account</span>
-          </button>
+          {/* Registration & OTP Buttons */}
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={onNavigateToRegister}
+              className="py-2.5 px-3 bg-[#E5F1F5] hover:bg-[#d5e8ef] border border-[#176B87]/30 text-[#176B87] font-bold rounded-xl text-xs transition flex items-center justify-center space-x-1.5"
+            >
+              <UserPlus className="w-3.5 h-3.5" />
+              <span>Register</span>
+            </button>
 
-          {/* OR Divider */}
-          <div className="relative flex py-1 items-center">
-            <div className="flex-grow border-t border-slate-200/80" />
-            <span className="flex-shrink mx-3 text-[11px] font-bold text-slate-400 uppercase">
-              OR
-            </span>
-            <div className="flex-grow border-t border-slate-200/80" />
+            <button
+              type="button"
+              onClick={() => setIsOtpMode(!isOtpMode)}
+              className="py-2.5 px-3 bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 font-bold rounded-xl text-xs transition flex items-center justify-center space-x-1.5"
+            >
+              <Smartphone className="w-3.5 h-3.5 text-[#176B87]" />
+              <span>{isOtpMode ? 'Use Password' : 'OTP Login'}</span>
+            </button>
           </div>
-
-          {/* Sign in with OTP / Mobile Button */}
-          <button
-            type="button"
-            onClick={() => setIsOtpMode(!isOtpMode)}
-            className="w-full py-3 bg-white border border-[#176B87] text-[#176B87] hover:bg-slate-50 font-bold rounded-xl text-xs sm:text-sm transition flex items-center justify-center space-x-2"
-          >
-            <Smartphone className="w-4 h-4" />
-            <span>{isOtpMode ? 'Sign in with Password' : 'Sign in with OTP / Mobile'}</span>
-          </button>
         </form>
 
         {/* Footer */}
-        <div className="mt-7 pt-5 border-t border-slate-200/70 text-center space-y-1.5">
+        <div className="mt-6 pt-4 border-t border-slate-200/70 text-center space-y-1">
           <p className="text-xs text-[#64748B]">
             Need help?{' '}
             <button
@@ -324,7 +424,7 @@ export const PortalRoleLoginPage: React.FC<PortalRoleLoginPageProps> = ({
               Contact your administrator
             </button>
           </p>
-          <p className="text-[11px] text-slate-400 font-medium">
+          <p className="text-[10px] text-slate-400 font-medium">
             CASPA School OS • Enterprise Edition
           </p>
         </div>

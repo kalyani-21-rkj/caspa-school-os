@@ -2483,7 +2483,35 @@ class DatabaseStore {
   studyMaterials: StudyMaterialItem[] = [...INITIAL_STUDY_MATERIALS];
   studentAchievements: StudentAchievement[] = [...INITIAL_STUDENT_ACHIEVEMENTS];
   attendanceHeatmap: AttendanceDayRecord[] = [...INITIAL_ATTENDANCE_HEATMAP];
-  absenceExcuses: { date: string; reason: string; status: 'PENDING' | 'APPROVED' }[] = [];
+  absenceExcuses: {
+    id: string;
+    studentName: string;
+    gradeSection: string;
+    rollNo?: string;
+    date: string;
+    reason: string;
+    attachmentName?: string;
+    submittedAt: string;
+    status: 'PENDING' | 'APPROVED' | 'REJECTED';
+    reviewedBy?: string;
+    reviewedAt?: string;
+    teacherNote?: string;
+  }[] = [
+    {
+      id: 'exc-seed-1',
+      studentName: 'Elena Vance',
+      gradeSection: 'Grade 9B',
+      rollNo: '14',
+      date: 'Sep 14, 2026',
+      reason: 'Flu & Doctor Consultation Note',
+      attachmentName: 'Medical_Certificate_Sep14.pdf',
+      submittedAt: 'Sep 14, 2026 • 08:15 AM',
+      status: 'APPROVED',
+      reviewedBy: 'Mrs. Oswald (Class Teacher)',
+      reviewedAt: 'Sep 14, 2026 • 09:10 AM',
+      teacherNote: 'Medical certificate verified. Absence officially excused.',
+    },
+  ];
 
   // Teacher State
   teacherClasses: TeacherClass[] = [...INITIAL_TEACHER_CLASSES];
@@ -2785,12 +2813,69 @@ class DatabaseStore {
     return task;
   }
 
-  submitAbsenceExcuse(date: string, reason: string) {
-    const excuse = { date, reason, status: 'PENDING' as const };
-    const activeName = this.currentUser?.fullName || 'Student';
+  submitAbsenceExcuse(date: string, reason: string, attachmentName?: string) {
+    const activeName =
+      this.currentUser?.roleType === 'STUDENT' ? this.currentUser.fullName : 'Elena Vance';
+    const gradeSection =
+      this.currentUser?.roleType === 'STUDENT' && this.currentUser.designation?.includes('Grade')
+        ? this.currentUser.designation.split('•')[0].trim()
+        : 'Grade 9B';
+    const timeNow = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+    const excuse = {
+      id: `exc-${Date.now()}`,
+      studentName: activeName,
+      gradeSection: gradeSection === 'Grade 9' ? 'Grade 9B' : gradeSection,
+      rollNo: '14',
+      date,
+      reason,
+      attachmentName,
+      submittedAt: `Today at ${timeNow}`,
+      status: 'PENDING' as const,
+    };
     this.absenceExcuses.unshift(excuse);
-    this.logAudit(activeName, 'STUDENT', 'SUBMIT_ABSENCE_EXCUSE', 'ATTENDANCE', date, `Submitted excuse for ${date}: ${reason}`);
+    this.logAudit(
+      activeName,
+      'STUDENT',
+      'SUBMIT_ABSENCE_EXCUSE',
+      'ATTENDANCE',
+      excuse.id,
+      `Submitted absence excuse for ${date}: ${reason} (Sent to Class Teacher)`
+    );
     return excuse;
+  }
+
+  reviewStudentAbsenceExcuse(
+    excuseId: string,
+    decision: 'APPROVED' | 'REJECTED',
+    teacherNote?: string
+  ) {
+    const item = this.absenceExcuses.find((e) => e.id === excuseId);
+    const teacherName =
+      this.currentUser?.roleType === 'TEACHER' ? this.currentUser.fullName : 'Mrs. Oswald';
+    const timeNow = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+    if (item) {
+      item.status = decision;
+      item.reviewedBy = `${teacherName} (Class Teacher)`;
+      item.reviewedAt = `Today at ${timeNow}`;
+      item.teacherNote =
+        teacherNote && teacherNote.trim().length > 0
+          ? teacherNote.trim()
+          : decision === 'APPROVED'
+          ? 'Absence excuse verified and approved by Class Teacher.'
+          : 'Absence excuse could not be approved. Please provide supporting documentation.';
+
+      this.logAudit(
+        teacherName,
+        'TEACHER',
+        decision === 'APPROVED' ? 'APPROVE_STUDENT_EXCUSE' : 'REJECT_STUDENT_EXCUSE',
+        'ATTENDANCE',
+        item.id,
+        `${decision === 'APPROVED' ? 'Approved' : 'Rejected'} absence excuse for ${item.studentName} (${item.date})`
+      );
+    }
+    return item;
   }
 
   // Teacher Attendance Methods
@@ -2995,23 +3080,82 @@ class DatabaseStore {
     busRoute?: string;
   }) {
     const admissionNo = `CASPA-2026-${Math.floor(1000 + Math.random() * 9000)}`;
+    const nextRollNo =
+      this.students.filter((s) => s.grade === data.grade && s.section === data.section).length + 1;
     const newStudent: Student = {
       id: `std-${Date.now()}`,
       admissionNo,
       fullName: data.fullName,
       grade: data.grade,
       section: data.section,
-      rollNo: this.students.filter(s => s.grade === data.grade && s.section === data.section).length + 1,
+      rollNo: nextRollNo,
       gender: data.gender,
       parentName: data.parentName,
-      parentPhone: data.parentPhone,
-      parentEmail: data.parentEmail,
+      parentPhone: data.parentPhone || '+1 (555) 200-1000',
+      parentEmail: data.parentEmail || `${data.parentName.toLowerCase().replace(/\s+/g, '.')}@parent.caspa.org`,
       attendancePercentage: 100.0,
       feeOutstanding: 3850,
       busRoute: data.busRoute || 'None',
       status: 'ACTIVE',
     };
     this.students.unshift(newStudent);
+
+    // Sync to Teacher Student Roster (Teacher Module: Attendance, Marks & Class Roster)
+    const initials = data.fullName
+      .split(' ')
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((w) => w[0]?.toUpperCase() || '')
+      .join('');
+    const matchedSection = this.classSections.find(
+      (cs) => cs.section.toLowerCase() === data.section.toLowerCase() || cs.grade.toLowerCase() === data.grade.toLowerCase()
+    );
+    const assignedTeacher = matchedSection?.classTeacher || 'Mrs. Oswald';
+
+    const newTeacherStudent: TeacherStudent = {
+      id: `ts-${Date.now()}`,
+      rollNo: nextRollNo,
+      fullName: newStudent.fullName,
+      grade: `${data.grade} (${data.section})`,
+      section: data.section,
+      attendanceStatus: 'PRESENT',
+      unitTestScore: null,
+      maxScore: 100,
+      instructorNote: `Admission #${admissionNo} • Class Teacher: ${assignedTeacher} • Guardian: ${newStudent.parentName} (${newStudent.parentPhone}, ${newStudent.parentEmail}) • Bus: ${newStudent.busRoute}`,
+      hasNote: true,
+      avatarInitials: initials || 'ST',
+      parentName: newStudent.parentName,
+      parentPhone: newStudent.parentPhone,
+    };
+    this.teacherStudents.unshift(newTeacherStudent);
+
+    // Sync class section & teacher class student counts
+    if (matchedSection) {
+      matchedSection.studentCount += 1;
+    }
+    this.teacherClasses.forEach((tc) => {
+      if (
+        tc.section.toLowerCase() === data.section.toLowerCase() ||
+        tc.grade.toLowerCase().includes(data.section.toLowerCase()) ||
+        tc.grade.toLowerCase() === data.grade.toLowerCase()
+      ) {
+        tc.studentCount += 1;
+      }
+    });
+
+    // Sync to Teacher Parent Comms so teacher can directly message guardian
+    this.parentMessages.unshift({
+      id: `msg-${Date.now()}`,
+      parentName: newStudent.parentName,
+      parentAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80',
+      studentName: newStudent.fullName,
+      gradeSection: `${data.grade} (${data.section})`,
+      timeString: 'Just now',
+      snippet: `New student enrolled (${admissionNo}). Guardian contact: ${newStudent.parentPhone} • ${newStudent.parentEmail}`,
+      unreadCount: 1,
+      isOnline: true,
+    });
+
     // Create term fee invoice
     this.feeInvoices.unshift({
       id: `inv-${Date.now()}`,
@@ -3026,7 +3170,14 @@ class DatabaseStore {
       dueDate: 'Oct 15, 2026',
       status: 'OVERDUE',
     });
-    this.logAudit('Arthur Clark', 'ADMIN', 'ADMIT_STUDENT', 'STUDENTS', newStudent.id, `Admitted ${newStudent.fullName} to ${newStudent.grade} ${newStudent.section}`);
+    this.logAudit(
+      this.currentUser?.fullName || 'Arthur Clark',
+      this.currentUser?.roleType || 'ADMIN',
+      'ADMIT_STUDENT',
+      'STUDENTS',
+      newStudent.id,
+      `Admitted ${newStudent.fullName} to ${newStudent.grade} ${newStudent.section} (Synced to Teacher ${assignedTeacher})`
+    );
     return newStudent;
   }
 

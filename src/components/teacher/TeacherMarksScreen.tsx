@@ -14,7 +14,7 @@ import { useApp } from '../../context/AppContext';
 
 export const TeacherMarksScreen: React.FC = () => {
   const { teacherStudents, updateStudentGrade, showToast } = useApp();
-  const [selectedClass, setSelectedClass] = useState('Grade 9B — Mathematics');
+  const [selectedClass, setSelectedClass] = useState('ALL');
   const [selectedAssessment, setSelectedAssessment] = useState('Unit Test 2');
   const [bulkMode, setBulkMode] = useState(false);
   const [instructorNotes, setInstructorNotes] = useState<Record<string, string>>({
@@ -22,8 +22,15 @@ export const TeacherMarksScreen: React.FC = () => {
   });
   const [showCopilot, setShowCopilot] = useState(true);
 
-  const gradedStudents = teacherStudents.filter((s) => s.unitTestScore !== null);
-  const ungradedStudents = teacherStudents.filter((s) => s.unitTestScore === null);
+  const visibleStudents = teacherStudents.filter(
+    (s) =>
+      selectedClass === 'ALL' ||
+      s.section.toLowerCase() === selectedClass.toLowerCase() ||
+      s.grade.toLowerCase().includes(selectedClass.toLowerCase())
+  );
+
+  const gradedStudents = visibleStudents.filter((s) => s.unitTestScore !== null);
+  const ungradedStudents = visibleStudents.filter((s) => s.unitTestScore === null);
   const highestScore = Math.max(...gradedStudents.map((s) => s.unitTestScore || 0), 98);
   const avgScore = 76;
 
@@ -35,7 +42,7 @@ export const TeacherMarksScreen: React.FC = () => {
   };
 
   const handleSaveNote = (studentId: string) => {
-    const note = instructorNotes[studentId] || '';
+    const note = instructorNotes[studentId] ?? teacherStudents.find((s) => s.id === studentId)?.instructorNote ?? '';
     updateStudentGrade(studentId, teacherStudents.find((s) => s.id === studentId)?.unitTestScore ?? null, note);
     showToast('Instructor feedback note saved to student record');
   };
@@ -50,10 +57,10 @@ export const TeacherMarksScreen: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-2 border-b border-slate-200">
         <div>
           <span className="text-[10px] font-bold text-teal uppercase tracking-widest block">
-            CASPA OS • ASSESSMENT
+            CASPA OS • ASSESSMENT &amp; ROSTER
           </span>
           <h1 className="text-2xl font-extrabold text-navy tracking-tight">
-            Marks And Feedback
+            Marks, Roster &amp; Feedback
           </h1>
         </div>
 
@@ -64,9 +71,13 @@ export const TeacherMarksScreen: React.FC = () => {
             onChange={(e) => setSelectedClass(e.target.value)}
             className="px-3 py-1.5 rounded-lg border border-slate-300 bg-white text-xs font-bold text-navy focus:outline-none focus:border-teal"
           >
-            <option value="Grade 9B — Mathematics">Grade 9B — Mathematics</option>
-            <option value="Grade 10A — Algebra II">Grade 10A — Algebra II</option>
-            <option value="Grade 11 — AP Calculus">Grade 11 — AP Calculus</option>
+            <option value="ALL">All Grades &amp; Sections ({teacherStudents.length})</option>
+            <option value="9B">Grade 9B — Mathematics</option>
+            <option value="9A">Grade 9A — Mathematics</option>
+            <option value="10A">Grade 10A — Algebra II</option>
+            <option value="10B">Grade 10B — Algebra II</option>
+            <option value="11 AP">Grade 11 AP — Calculus</option>
+            <option value="12A">Grade 12A — Advanced Math</option>
           </select>
 
           <select
@@ -112,9 +123,9 @@ export const TeacherMarksScreen: React.FC = () => {
       {/* Student Grading Header & Bulk Entry Toggle */}
       <div className="flex items-center justify-between px-1">
         <div className="flex items-center space-x-2">
-          <h3 className="font-extrabold text-navy text-sm">Student Grading</h3>
+          <h3 className="font-extrabold text-navy text-sm">Student Roster &amp; Grading</h3>
           <span className="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded font-semibold">
-            32 Total
+            {visibleStudents.length} Showing
           </span>
         </div>
 
@@ -133,7 +144,7 @@ export const TeacherMarksScreen: React.FC = () => {
 
       {/* Student Grading List (Image 8) */}
       <div className="space-y-3">
-        {teacherStudents.map((std) => (
+        {visibleStudents.map((std) => (
           <div
             key={std.id}
             className="bg-white rounded-xl border border-slate-200 p-4 shadow-xs space-y-3 hover:border-slate-300 transition"
@@ -147,6 +158,9 @@ export const TeacherMarksScreen: React.FC = () => {
                 <div>
                   <div className="flex items-center space-x-1.5">
                     <h4 className="font-bold text-navy text-sm">{std.fullName}</h4>
+                    <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-700 text-[10px] font-bold">
+                      Sec {std.section}
+                    </span>
                     {std.unitTestScore !== null && std.unitTestScore >= 95 && (
                       <CheckCircle2 className="w-3.5 h-3.5 text-teal" />
                     )}
@@ -154,11 +168,12 @@ export const TeacherMarksScreen: React.FC = () => {
                   <p className="text-[11px] text-slate-500">
                     {std.unitTestScore === null ? (
                       <span className="text-red-500 font-semibold">
-                        ● Roll No. {String(std.rollNo).padStart(2, '0')} • Ungraded
+                        ● Roll No. {String(std.rollNo).padStart(2, '0')} • {std.grade} • Ungraded
                       </span>
                     ) : (
                       <span>Roll No. {String(std.rollNo).padStart(2, '0')} • {std.grade}</span>
                     )}
+                    {std.parentName ? ` • Guardian: ${std.parentName} (${std.parentPhone})` : ''}
                   </p>
                 </div>
               </div>
@@ -188,17 +203,17 @@ export const TeacherMarksScreen: React.FC = () => {
               </div>
             </div>
 
-            {/* Instructor Note Accordion (Image 8 for Marcus Brody) */}
-            {std.id === 'ts-2' && (
+            {/* Instructor / Admission Note Accordion */}
+            {(std.id === 'ts-2' || Boolean(std.instructorNote)) && (
               <div className="p-3 bg-sky-50/70 rounded-xl border border-sky-100 space-y-2 text-xs">
                 <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-teal">
-                  <span>INSTRUCTOR NOTE</span>
-                  <span className="text-slate-400 font-mono">82/200</span>
+                  <span>STUDENT DOSSIER &amp; INSTRUCTOR NOTE</span>
+                  <span className="text-slate-400 font-mono">SYNCED FROM ADMIN</span>
                 </div>
 
                 <textarea
                   rows={2}
-                  value={instructorNotes[std.id] || ''}
+                  value={instructorNotes[std.id] ?? std.instructorNote ?? ''}
                   onChange={(e) =>
                     setInstructorNotes({ ...instructorNotes, [std.id]: e.target.value })
                   }

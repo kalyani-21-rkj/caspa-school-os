@@ -28,6 +28,8 @@ export const TeacherDashboardScreen: React.FC<TeacherDashboardScreenProps> = ({ 
     masterTimetable,
     activeTimetableWeek,
     togglePeriodCompletion,
+    absenceExcuses,
+    reviewStudentAbsenceExcuse,
     showToast,
   } = useApp();
   const [isAiLoading, setIsAiLoading] = useState(false);
@@ -243,6 +245,66 @@ export const TeacherDashboardScreen: React.FC<TeacherDashboardScreenProps> = ({ 
           <ArrowRight className="w-4 h-4 text-slate-400" />
         </div>
       </div>
+
+      {/* Live Student Absence Excuse Banner on Teacher Dashboard */}
+      {absenceExcuses.length > 0 && (
+        <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+          <div className="flex items-center space-x-3">
+            <div className="w-9 h-9 rounded-xl bg-amber-50 border border-amber-200 text-amber-700 font-extrabold flex items-center justify-center shrink-0">
+              {absenceExcuses.filter((e) => e.status === 'PENDING').length}
+            </div>
+            <div>
+              <div className="flex items-center space-x-2">
+                <span className="font-extrabold text-navy">
+                  Student Absence Excuse Request: {absenceExcuses[0].studentName || 'Elena Vance'} ({absenceExcuses[0].gradeSection || 'Grade 9B'})
+                </span>
+                <span
+                  className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold ${
+                    absenceExcuses[0].status === 'APPROVED'
+                      ? 'bg-emerald-100 text-emerald-800'
+                      : absenceExcuses[0].status === 'REJECTED'
+                      ? 'bg-rose-100 text-rose-800'
+                      : 'bg-amber-100 text-amber-800'
+                  }`}
+                >
+                  {absenceExcuses[0].status}
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-600 mt-0.5">
+                Date: <strong>{absenceExcuses[0].date}</strong> • Reason: {absenceExcuses[0].reason}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center space-x-2 shrink-0">
+            <button
+              type="button"
+              onClick={() =>
+                reviewStudentAbsenceExcuse(absenceExcuses[0].id || 'exc-0', 'APPROVED')
+              }
+              className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-xs transition cursor-pointer"
+            >
+              Approve Leave
+            </button>
+            <button
+              type="button"
+              onClick={() =>
+                reviewStudentAbsenceExcuse(absenceExcuses[0].id || 'exc-0', 'REJECTED')
+              }
+              className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg font-bold text-xs transition cursor-pointer"
+            >
+              Reject Leave
+            </button>
+            <button
+              type="button"
+              onClick={() => onNavigate('attendance')}
+              className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-navy rounded-lg font-bold text-xs transition cursor-pointer"
+            >
+              View All ({absenceExcuses.length})
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* NEXT CLASS Card (Image 4) */}
       <div className="bg-white rounded-xl border-l-4 border-l-[#176B87] border-y border-r border-slate-200 p-5 shadow-xs space-y-4">

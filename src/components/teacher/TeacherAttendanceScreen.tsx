@@ -22,15 +22,28 @@ export const TeacherAttendanceScreen: React.FC<TeacherAttendanceScreenProps> = (
     teacherStudents,
     setStudentAttendance,
     markAllStudentsPresent,
+    absenceExcuses,
+    reviewStudentAbsenceExcuse,
     showToast,
   } = useApp();
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedSectionFilter, setSelectedSectionFilter] = useState<string>('ALL');
+  const [teacherNotesByExcuse, setTeacherNotesByExcuse] = useState<Record<string, string>>({});
 
-  const presentCount = teacherStudents.filter((s) => s.attendanceStatus === 'PRESENT').length;
-  const absentCount = teacherStudents.filter((s) => s.attendanceStatus === 'ABSENT').length;
-  const lateCount = teacherStudents.filter((s) => s.attendanceStatus === 'LATE').length;
-  const totalCount = 32;
+  const pendingExcuseCount = absenceExcuses.filter((e) => e.status === 'PENDING').length;
+
+  const filteredStudents = teacherStudents.filter(
+    (s) =>
+      selectedSectionFilter === 'ALL' ||
+      s.section.toLowerCase() === selectedSectionFilter.toLowerCase() ||
+      s.grade.toLowerCase().includes(selectedSectionFilter.toLowerCase())
+  );
+
+  const presentCount = filteredStudents.filter((s) => s.attendanceStatus === 'PRESENT').length;
+  const absentCount = filteredStudents.filter((s) => s.attendanceStatus === 'ABSENT').length;
+  const lateCount = filteredStudents.filter((s) => s.attendanceStatus === 'LATE').length;
+  const totalCount = Math.max(32, filteredStudents.length);
   const markedCount = presentCount + absentCount + lateCount;
 
   const handleSubmitAttendance = () => {
@@ -66,9 +79,25 @@ export const TeacherAttendanceScreen: React.FC<TeacherAttendanceScreenProps> = (
           </div>
         </div>
 
-        <div className="flex items-center space-x-1.5 px-3 py-1 rounded-full bg-red-50 border border-red-200 text-red-600 text-xs font-bold">
-          <span className="w-2 h-2 rounded-full bg-red-600 animate-ping"></span>
-          <span>LIVE</span>
+        <div className="flex items-center space-x-2">
+          <select
+            value={selectedSectionFilter}
+            onChange={(e) => setSelectedSectionFilter(e.target.value)}
+            className="px-2.5 py-1 rounded-lg border border-slate-300 bg-white text-xs font-bold text-navy focus:outline-none focus:border-teal"
+          >
+            <option value="ALL">All Sections ({teacherStudents.length})</option>
+            <option value="9B">Section 9B</option>
+            <option value="9A">Section 9A</option>
+            <option value="10A">Section 10A</option>
+            <option value="10B">Section 10B</option>
+            <option value="11 AP">Section 11 AP</option>
+            <option value="12A">Section 12A</option>
+          </select>
+
+          <div className="flex items-center space-x-1.5 px-3 py-1 rounded-full bg-red-50 border border-red-200 text-red-600 text-xs font-bold">
+            <span className="w-2 h-2 rounded-full bg-red-600 animate-ping"></span>
+            <span>LIVE</span>
+          </div>
         </div>
       </div>
 
@@ -76,10 +105,10 @@ export const TeacherAttendanceScreen: React.FC<TeacherAttendanceScreenProps> = (
       <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-xs flex items-center justify-between">
         <div>
           <span className="text-[10px] font-bold text-teal uppercase tracking-widest block">
-            SECTION 9-B
+            {selectedSectionFilter === 'ALL' ? 'ALL ASSIGNED SECTIONS' : `SECTION ${selectedSectionFilter}`}
           </span>
           <h2 className="text-xl font-extrabold text-navy mt-0.5">
-            Grade 9B — Mathematics
+            {selectedSectionFilter === 'ALL' ? 'Grade 9B & Assigned Cohorts — Mathematics' : `Grade ${selectedSectionFilter} — Mathematics`}
           </h2>
           <div className="flex items-center space-x-2 text-xs text-slate-500 mt-1">
             <span>09:00 AM, Sep 23, 2026</span>
@@ -122,6 +151,168 @@ export const TeacherAttendanceScreen: React.FC<TeacherAttendanceScreenProps> = (
         </div>
       </div>
 
+      {/* Student Absence Excuse & Leave Requests (Synced from Student Portal) */}
+      <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-xs space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-100">
+          <div>
+            <div className="flex items-center space-x-2">
+              <h3 className="text-sm font-extrabold text-navy">
+                Student Absence Excuse &amp; Leave Requests
+              </h3>
+              <span
+                className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold ${
+                  pendingExcuseCount > 0
+                    ? 'bg-amber-100 text-amber-800 border border-amber-300'
+                    : 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                }`}
+              >
+                {pendingExcuseCount > 0
+                  ? `${pendingExcuseCount} Pending Review`
+                  : 'All Reviewed ✓'}
+              </span>
+            </div>
+            <p className="text-[11px] text-slate-500 mt-0.5">
+              Leave &amp; absence excuses submitted by students in the Student Portal appear here for Class Teacher approval or rejection.
+            </p>
+          </div>
+          <span className="text-[10px] font-bold text-teal bg-teal-50 px-2.5 py-1 rounded-lg border border-teal-200 shrink-0">
+            Two-Way Student Sync Active
+          </span>
+        </div>
+
+        <div className="space-y-3">
+          {absenceExcuses.map((excuse, idx) => {
+            const excuseId = excuse.id || `exc-${idx}`;
+            const isApproved = excuse.status === 'APPROVED';
+            const isRejected = excuse.status === 'REJECTED';
+            const isPending = excuse.status === 'PENDING';
+
+            return (
+              <div
+                key={excuseId}
+                className={`p-4 rounded-xl border text-xs space-y-3 transition ${
+                  isPending
+                    ? 'bg-amber-50/40 border-amber-200'
+                    : isApproved
+                    ? 'bg-emerald-50/30 border-emerald-200'
+                    : 'bg-rose-50/30 border-rose-200'
+                }`}
+              >
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-9 h-9 rounded-full bg-navy text-white font-bold flex items-center justify-center text-xs shrink-0">
+                      {(excuse.studentName || 'Elena Vance')
+                        .split(' ')
+                        .map((w) => w[0])
+                        .join('')
+                        .slice(0, 2)}
+                    </div>
+                    <div>
+                      <div className="flex items-center space-x-2">
+                        <span className="font-extrabold text-navy text-sm">
+                          {excuse.studentName || 'Elena Vance'}
+                        </span>
+                        <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-700 text-[10px] font-bold">
+                          {excuse.gradeSection || 'Grade 9B'}
+                        </span>
+                        {excuse.rollNo && (
+                          <span className="text-[10px] text-slate-500 font-semibold">
+                            Roll #{excuse.rollNo}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-[11px] text-slate-500 mt-0.5">
+                        Absence Date: <strong className="text-navy">{excuse.date}</strong> • Submitted:{' '}
+                        {excuse.submittedAt || 'Today'}
+                      </p>
+                    </div>
+                  </div>
+
+                  <span
+                    className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold self-start sm:self-center ${
+                      isApproved
+                        ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                        : isRejected
+                        ? 'bg-rose-100 text-rose-800 border border-rose-300'
+                        : 'bg-amber-100 text-amber-800 border border-amber-300'
+                    }`}
+                  >
+                    {isApproved ? '✓ APPROVED' : isRejected ? '✕ REJECTED' : '⏳ PENDING APPROVAL'}
+                  </span>
+                </div>
+
+                <div className="p-2.5 bg-white rounded-lg border border-slate-200 text-slate-700">
+                  <span className="text-[10px] font-bold uppercase text-slate-400 block mb-0.5">
+                    Student Reason / Explanation
+                  </span>
+                  <p className="text-xs font-medium text-navy">{excuse.reason}</p>
+                  {excuse.attachmentName && (
+                    <span className="mt-1.5 inline-block text-[10px] font-bold text-teal bg-teal-50 px-2 py-0.5 rounded border border-teal-200">
+                      📎 Attached File: {excuse.attachmentName}
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 pt-1">
+                  <input
+                    type="text"
+                    value={teacherNotesByExcuse[excuseId] ?? excuse.teacherNote ?? ''}
+                    onChange={(e) =>
+                      setTeacherNotesByExcuse((prev) => ({
+                        ...prev,
+                        [excuseId]: e.target.value,
+                      }))
+                    }
+                    placeholder="Add optional teacher remark for student (e.g., Medical note verified)..."
+                    className="flex-1 px-3 py-2 rounded-lg border border-slate-200 bg-white text-xs text-navy focus:outline-none focus:border-teal"
+                  />
+
+                  <div className="flex items-center space-x-2 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        reviewStudentAbsenceExcuse(
+                          excuseId,
+                          'APPROVED',
+                          teacherNotesByExcuse[excuseId]
+                        )
+                      }
+                      className={`px-3.5 py-2 rounded-lg font-bold text-xs flex items-center space-x-1.5 transition cursor-pointer ${
+                        isApproved
+                          ? 'bg-emerald-700 text-white ring-2 ring-emerald-300'
+                          : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-2xs'
+                      }`}
+                    >
+                      <Check className="w-3.5 h-3.5 stroke-[3]" />
+                      <span>{isApproved ? 'Approved ✓' : 'Approve Leave'}</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        reviewStudentAbsenceExcuse(
+                          excuseId,
+                          'REJECTED',
+                          teacherNotesByExcuse[excuseId]
+                        )
+                      }
+                      className={`px-3.5 py-2 rounded-lg font-bold text-xs flex items-center space-x-1.5 transition cursor-pointer ${
+                        isRejected
+                          ? 'bg-rose-700 text-white ring-2 ring-rose-300'
+                          : 'bg-rose-600 hover:bg-rose-700 text-white shadow-2xs'
+                      }`}
+                    >
+                      <X className="w-3.5 h-3.5 stroke-[3]" />
+                      <span>{isRejected ? 'Rejected ✕' : 'Reject Leave'}</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
       {/* Fast Action Row */}
       <div className="flex items-center justify-between text-xs px-1">
         <button
@@ -132,12 +323,12 @@ export const TeacherAttendanceScreen: React.FC<TeacherAttendanceScreenProps> = (
           <span>Mark All Present</span>
         </button>
 
-        <span className="text-slate-400 text-[11px]">Sorted by Roll No.</span>
+        <span className="text-slate-400 text-[11px]">Sorted by Roll No. &amp; Latest Admissions</span>
       </div>
 
       {/* Student List with Interactive P / A / L Buttons (Image 6) */}
       <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-xs divide-y divide-slate-100">
-        {teacherStudents.map((std) => (
+        {filteredStudents.map((std) => (
           <div
             key={std.id}
             className="p-4 flex items-center justify-between hover:bg-slate-50 transition"
@@ -148,10 +339,21 @@ export const TeacherAttendanceScreen: React.FC<TeacherAttendanceScreenProps> = (
                 {std.avatarInitials}
               </div>
               <div>
-                <h4 className="font-bold text-navy text-sm">{std.fullName}</h4>
+                <div className="flex items-center space-x-2">
+                  <h4 className="font-bold text-navy text-sm">{std.fullName}</h4>
+                  <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-700 text-[10px] font-bold">
+                    Sec {std.section}
+                  </span>
+                </div>
                 <p className="text-[11px] text-slate-500">
                   Roll No. {String(std.rollNo).padStart(2, '0')} • {std.grade}
+                  {std.parentName ? ` • Guardian: ${std.parentName} (${std.parentPhone})` : ''}
                 </p>
+                {std.instructorNote && (
+                  <p className="text-[10px] text-teal font-medium mt-0.5">
+                    {std.instructorNote}
+                  </p>
+                )}
               </div>
             </div>
 

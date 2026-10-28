@@ -71,9 +71,18 @@ import {
 } from '../services/db';
 
 export interface AbsenceExcuseItem {
+  id: string;
+  studentName: string;
+  gradeSection: string;
+  rollNo?: string;
   date: string;
   reason: string;
-  status: 'PENDING' | 'APPROVED';
+  attachmentName?: string;
+  submittedAt: string;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  reviewedBy?: string;
+  reviewedAt?: string;
+  teacherNote?: string;
 }
 
 interface AppContextType {
@@ -115,7 +124,8 @@ interface AppContextType {
       note?: string;
     }
   ) => void;
-  submitAbsenceExcuse: (date: string, reason: string) => void;
+  submitAbsenceExcuse: (date: string, reason: string, attachmentName?: string) => void;
+  reviewStudentAbsenceExcuse: (excuseId: string, decision: 'APPROVED' | 'REJECTED', teacherNote?: string) => void;
 
   // Teacher Module Entities & Actions
   teacherClasses: TeacherClass[];
@@ -295,9 +305,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [studyMaterials, setStudyMaterials] = useState<StudyMaterialItem[]>([...INITIAL_STUDY_MATERIALS]);
   const [studentAchievements, setStudentAchievements] = useState<StudentAchievement[]>([...INITIAL_STUDENT_ACHIEVEMENTS]);
   const [attendanceHeatmap, setAttendanceHeatmap] = useState<AttendanceDayRecord[]>([...INITIAL_ATTENDANCE_HEATMAP]);
-  const [absenceExcuses, setAbsenceExcuses] = useState<AbsenceExcuseItem[]>([
-    { date: 'Sep 14, 2026', reason: 'Flu & Doctor Consultation Note', status: 'APPROVED' },
-  ]);
+  const [absenceExcuses, setAbsenceExcuses] = useState<AbsenceExcuseItem[]>([...db.absenceExcuses]);
 
   // Teacher Module Data
   const [teacherClasses, setTeacherClasses] = useState<TeacherClass[]>([...INITIAL_TEACHER_CLASSES]);
@@ -534,10 +542,26 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
-  const submitAbsenceExcuse = (date: string, reason: string) => {
-    const excuse = db.submitAbsenceExcuse(date, reason);
+  const submitAbsenceExcuse = (date: string, reason: string, attachmentName?: string) => {
+    const excuse = db.submitAbsenceExcuse(date, reason, attachmentName);
     setAbsenceExcuses([...db.absenceExcuses]);
-    showToast(`Absence excuse submitted for ${date}`);
+    setAuditLogs([...db.auditLogs]);
+    showToast(`Absence excuse for ${excuse.date} submitted • Sent to Class Teacher (Mrs. Oswald) for approval`);
+  };
+
+  const reviewStudentAbsenceExcuse = (
+    excuseId: string,
+    decision: 'APPROVED' | 'REJECTED',
+    teacherNote?: string
+  ) => {
+    const updated = db.reviewStudentAbsenceExcuse(excuseId, decision, teacherNote);
+    if (updated) {
+      setAbsenceExcuses([...db.absenceExcuses]);
+      setAuditLogs([...db.auditLogs]);
+      showToast(
+        `${decision === 'APPROVED' ? 'Approved' : 'Rejected'} ${updated.studentName}'s absence excuse (${updated.date}) • Synced to Student Portal`
+      );
+    }
   };
 
   // Teacher Attendance
@@ -614,9 +638,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }) => {
     const newStudent = db.admitStudent(data);
     setStudents([...db.students]);
+    setTeacherStudents([...db.teacherStudents]);
+    setTeacherClasses([...db.teacherClasses]);
+    setClassSections([...db.classSections]);
+    setParentMessages([...db.parentMessages]);
     setFeeInvoices([...db.feeInvoices]);
     setAuditLogs([...db.auditLogs]);
-    showToast(`Successfully admitted ${newStudent.fullName} (${newStudent.admissionNo})`);
+    const matchedSection = db.classSections.find(
+      (cs) => cs.section.toLowerCase() === data.section.toLowerCase()
+    );
+    const teacherLabel = matchedSection?.classTeacher || 'Mrs. Oswald';
+    showToast(
+      `Admitted ${newStudent.fullName} (${newStudent.admissionNo}) to ${newStudent.grade} (${newStudent.section}) • Synced to ${teacherLabel}`
+    );
   };
 
   const updateStudent = (id: string, updates: Partial<Student>) => {
@@ -1357,6 +1391,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         absenceExcuses,
         submitStudentTask,
         submitAbsenceExcuse,
+        reviewStudentAbsenceExcuse,
         teacherClasses,
         teacherStudents,
         teacherTasks,

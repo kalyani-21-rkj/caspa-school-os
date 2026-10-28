@@ -18,6 +18,7 @@ export const StudentAttendanceScreen: React.FC = () => {
 
   const [excuseDate, setExcuseDate] = useState('2026-09-22');
   const [excuseReason, setExcuseReason] = useState('');
+  const [excuseAttachmentName, setExcuseAttachmentName] = useState<string>('');
   const [selectedDayInfo, setSelectedDayInfo] = useState<number | null>(14);
 
   const handleExcuseSubmit = (e: React.FormEvent) => {
@@ -26,8 +27,9 @@ export const StudentAttendanceScreen: React.FC = () => {
       showToast('Please specify a valid reason');
       return;
     }
-    submitAbsenceExcuse(excuseDate, excuseReason);
+    submitAbsenceExcuse(excuseDate, excuseReason, excuseAttachmentName || undefined);
     setExcuseReason('');
+    setExcuseAttachmentName('');
   };
 
   return (
@@ -206,15 +208,33 @@ export const StudentAttendanceScreen: React.FC = () => {
               </div>
 
               {/* Upload Doctor's Slip */}
-              <div className="p-3 border border-dashed border-slate-300 rounded-xl text-center bg-slate-50 text-xs text-slate-500 space-y-1">
-                <Upload className="w-4 h-4 text-slate-400 mx-auto" />
-                <span>Attach Medical Note or Letter</span>
-                <span className="block text-[10px] text-slate-400">PDF, JPG up to 10MB</span>
-              </div>
+              <label className="block p-3 border border-dashed border-slate-300 hover:border-teal rounded-xl text-center bg-slate-50 hover:bg-teal-50/30 text-xs text-slate-500 space-y-1 cursor-pointer transition">
+                <input
+                  type="file"
+                  accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      setExcuseAttachmentName(file.name);
+                      showToast(`Attached "${file.name}" to excuse request`);
+                    }
+                  }}
+                  className="hidden"
+                />
+                <Upload className="w-4 h-4 text-teal mx-auto" />
+                <span className="font-semibold text-navy block">
+                  {excuseAttachmentName
+                    ? `Attached: ${excuseAttachmentName}`
+                    : 'Attach Medical Note or Letter (Optional)'}
+                </span>
+                <span className="block text-[10px] text-slate-400">
+                  {excuseAttachmentName ? 'Click to change file' : 'PDF, JPG, PNG up to 10MB'}
+                </span>
+              </label>
 
               <button
                 type="submit"
-                className="w-full py-2.5 bg-[#176B87] hover:bg-[#12586e] text-white rounded-xl text-xs font-bold flex items-center justify-center space-x-2 transition shadow-xs"
+                className="w-full py-2.5 bg-[#176B87] hover:bg-[#12586e] text-white rounded-xl text-xs font-bold flex items-center justify-center space-x-2 transition shadow-xs cursor-pointer"
               >
                 <Send className="w-3.5 h-3.5" />
                 <span>Submit Excuse Request</span>
@@ -222,24 +242,104 @@ export const StudentAttendanceScreen: React.FC = () => {
             </form>
           </div>
 
-          {/* Existing Excuse Applications */}
+          {/* Existing Excuse Applications (Live Synced with Teacher Panel) */}
           <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-xs space-y-3">
-            <h4 className="text-xs font-extrabold text-navy uppercase tracking-wider">
-              Recent Excuse Requests
-            </h4>
+            <div className="flex items-center justify-between">
+              <h4 className="text-xs font-extrabold text-navy uppercase tracking-wider">
+                Recent Excuse Requests
+              </h4>
+              <span className="text-[10px] font-bold text-teal bg-teal-50 px-2 py-0.5 rounded-full border border-teal-200">
+                Live Teacher Sync
+              </span>
+            </div>
 
-            <div className="space-y-2">
-              {absenceExcuses.map((excuse, idx) => (
-                <div key={idx} className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs space-y-1">
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold text-navy">{excuse.date}</span>
-                    <span className="text-[10px] font-bold bg-emerald-100 text-emerald-800 px-2 py-0.2 rounded-full">
-                      {excuse.status}
-                    </span>
+            <div className="space-y-3">
+              {absenceExcuses.map((excuse, idx) => {
+                const isApproved = excuse.status === 'APPROVED';
+                const isRejected = excuse.status === 'REJECTED';
+                return (
+                  <div
+                    key={excuse.id || idx}
+                    className={`p-3.5 rounded-xl border text-xs space-y-2 transition ${
+                      isApproved
+                        ? 'bg-emerald-50/40 border-emerald-200'
+                        : isRejected
+                        ? 'bg-rose-50/40 border-rose-200'
+                        : 'bg-amber-50/40 border-amber-200'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <div>
+                        <span className="font-extrabold text-navy block">{excuse.date}</span>
+                        <span className="text-[10px] text-slate-400">
+                          Submitted: {excuse.submittedAt || 'Today'}
+                        </span>
+                      </div>
+                      <span
+                        className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-full flex items-center space-x-1 ${
+                          isApproved
+                            ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                            : isRejected
+                            ? 'bg-rose-100 text-rose-800 border border-rose-300'
+                            : 'bg-amber-100 text-amber-800 border border-amber-300'
+                        }`}
+                      >
+                        {isApproved ? (
+                          <Check className="w-3 h-3 stroke-[3]" />
+                        ) : isRejected ? (
+                          <X className="w-3 h-3 stroke-[3]" />
+                        ) : (
+                          <Clock className="w-3 h-3" />
+                        )}
+                        <span>
+                          {isApproved
+                            ? 'APPROVED BY TEACHER'
+                            : isRejected
+                            ? 'REJECTED BY TEACHER'
+                            : 'PENDING TEACHER APPROVAL'}
+                        </span>
+                      </span>
+                    </div>
+
+                    <p className="text-[11px] text-slate-700 font-medium">{excuse.reason}</p>
+
+                    {excuse.attachmentName && (
+                      <div className="text-[10px] text-teal font-bold bg-white/80 px-2 py-1 rounded border border-slate-200 inline-block">
+                        📎 Attachment: {excuse.attachmentName}
+                      </div>
+                    )}
+
+                    {/* Teacher Review Decision Banner */}
+                    {excuse.status === 'PENDING' ? (
+                      <div className="pt-1.5 border-t border-amber-200/70 flex items-center justify-between text-[10px] text-amber-800 font-semibold">
+                        <span>Sent to Class Teacher (Mrs. Oswald) for review</span>
+                        <span>Awaiting Decision</span>
+                      </div>
+                    ) : (
+                      <div
+                        className={`p-2 rounded-lg border text-[11px] space-y-0.5 ${
+                          isApproved
+                            ? 'bg-emerald-100/60 border-emerald-200 text-emerald-950'
+                            : 'bg-rose-100/60 border-rose-200 text-rose-950'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between font-bold text-[10px]">
+                          <span>
+                            {isApproved ? '✓ Leave Approved' : '✕ Leave Rejected'} by{' '}
+                            {excuse.reviewedBy || 'Mrs. Oswald (Class Teacher)'}
+                          </span>
+                          {excuse.reviewedAt && (
+                            <span className="opacity-75">{excuse.reviewedAt}</span>
+                          )}
+                        </div>
+                        {excuse.teacherNote && (
+                          <p className="text-[11px] opacity-90">{excuse.teacherNote}</p>
+                        )}
+                      </div>
+                    )}
                   </div>
-                  <p className="text-[11px] text-slate-600">{excuse.reason}</p>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </div>

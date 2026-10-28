@@ -20,6 +20,8 @@ export const TeacherHrAndApprovalsScreen: React.FC = () => {
     principalStaffLeaves,
     staffPayrollRecords,
     submitTeacherLeaveRequest,
+    absenceExcuses,
+    reviewStudentAbsenceExcuse,
     showToast,
   } = useApp();
 
@@ -108,6 +110,107 @@ export const TeacherHrAndApprovalsScreen: React.FC = () => {
           <CalendarPlus className="w-4 h-4" />
           <span>Apply for Staff Leave</span>
         </button>
+      </div>
+
+      {/* STUDENT LEAVE & ABSENCE EXCUSE APPROVALS (SYNCED FROM STUDENT PORTAL) */}
+      <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-100">
+          <div>
+            <div className="flex items-center space-x-2">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-teal block">
+                Student Portal Leave Sync • Grade 9B
+              </span>
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-100 text-amber-800 border border-amber-300">
+                {absenceExcuses.filter((e) => e.status === 'PENDING').length} Pending
+              </span>
+            </div>
+            <h2 className="text-base font-extrabold text-navy mt-0.5">
+              Student Absence Excuse &amp; Leave Requests
+            </h2>
+            <p className="text-xs text-slate-500">
+              Approve or reject student leave/absence excuses submitted from the Student Portal. Decisions update immediately in the student&apos;s account.
+            </p>
+          </div>
+        </div>
+
+        <div className="space-y-3">
+          {absenceExcuses.map((excuse, idx) => {
+            const excuseId = excuse.id || `exc-${idx}`;
+            const isApproved = excuse.status === 'APPROVED';
+            const isRejected = excuse.status === 'REJECTED';
+            return (
+              <div
+                key={excuseId}
+                className={`p-4 rounded-xl border text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${
+                  isApproved
+                    ? 'bg-emerald-50/40 border-emerald-200'
+                    : isRejected
+                    ? 'bg-rose-50/40 border-rose-200'
+                    : 'bg-amber-50/40 border-amber-200'
+                }`}
+              >
+                <div className="space-y-1">
+                  <div className="flex items-center space-x-2">
+                    <span className="font-extrabold text-navy text-sm">
+                      {excuse.studentName || 'Elena Vance'}
+                    </span>
+                    <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-700 text-[10px] font-bold">
+                      {excuse.gradeSection || 'Grade 9B'}
+                    </span>
+                    <span className="text-[11px] font-bold text-teal">
+                      Date: {excuse.date}
+                    </span>
+                    <span
+                      className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold ${
+                        isApproved
+                          ? 'bg-emerald-100 text-emerald-800'
+                          : isRejected
+                          ? 'bg-rose-100 text-rose-800'
+                          : 'bg-amber-100 text-amber-800'
+                      }`}
+                    >
+                      {excuse.status}
+                    </span>
+                  </div>
+                  <p className="text-slate-700 font-medium">{excuse.reason}</p>
+                  {excuse.attachmentName && (
+                    <span className="inline-block text-[10px] font-bold text-teal">
+                      📎 Attachment: {excuse.attachmentName}
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex items-center space-x-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => reviewStudentAbsenceExcuse(excuseId, 'APPROVED')}
+                    className={`px-3.5 py-2 rounded-lg font-bold text-xs flex items-center space-x-1.5 transition cursor-pointer ${
+                      isApproved
+                        ? 'bg-emerald-700 text-white ring-2 ring-emerald-300'
+                        : 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                    }`}
+                  >
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    <span>{isApproved ? 'Approved ✓' : 'Approve Leave'}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => reviewStudentAbsenceExcuse(excuseId, 'REJECTED')}
+                    className={`px-3.5 py-2 rounded-lg font-bold text-xs flex items-center space-x-1.5 transition cursor-pointer ${
+                      isRejected
+                        ? 'bg-rose-700 text-white ring-2 ring-rose-300'
+                        : 'bg-rose-600 hover:bg-rose-700 text-white'
+                    }`}
+                  >
+                    <XCircle className="w-3.5 h-3.5" />
+                    <span>{isRejected ? 'Rejected ✕' : 'Reject Leave'}</span>
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       {/* 1. Teacher Bank Salary & Payroll Status Card (Synced with Principal Payroll Summary) */}
