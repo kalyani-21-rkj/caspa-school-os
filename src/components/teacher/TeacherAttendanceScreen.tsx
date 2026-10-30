@@ -22,6 +22,9 @@ export const TeacherAttendanceScreen: React.FC<TeacherAttendanceScreenProps> = (
     teacherStudents,
     setStudentAttendance,
     markAllStudentsPresent,
+    activeAttendanceDate,
+    setActiveAttendanceDate,
+    studentAttendanceLedger,
     absenceExcuses,
     reviewStudentAbsenceExcuse,
     showToast,
@@ -29,6 +32,7 @@ export const TeacherAttendanceScreen: React.FC<TeacherAttendanceScreenProps> = (
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedSectionFilter, setSelectedSectionFilter] = useState<string>('ALL');
+  const [selectedPeriodSubject, setSelectedPeriodSubject] = useState<string>('Period 1 • Mathematics');
   const [teacherNotesByExcuse, setTeacherNotesByExcuse] = useState<Record<string, string>>({});
 
   const pendingExcuseCount = absenceExcuses.filter((e) => e.status === 'PENDING').length;
@@ -40,18 +44,44 @@ export const TeacherAttendanceScreen: React.FC<TeacherAttendanceScreenProps> = (
       s.grade.toLowerCase().includes(selectedSectionFilter.toLowerCase())
   );
 
-  const presentCount = filteredStudents.filter((s) => s.attendanceStatus === 'PRESENT').length;
-  const absentCount = filteredStudents.filter((s) => s.attendanceStatus === 'ABSENT').length;
-  const lateCount = filteredStudents.filter((s) => s.attendanceStatus === 'LATE').length;
-  const totalCount = Math.max(32, filteredStudents.length);
+  const getStudentStatusForDate = (std: (typeof teacherStudents)[0]) => {
+    const ledgerMatch = studentAttendanceLedger.find(
+      (e) =>
+        (e.studentId === std.id || e.studentName.toLowerCase() === std.fullName.toLowerCase()) &&
+        e.date === activeAttendanceDate
+    );
+    if (ledgerMatch) return ledgerMatch.status;
+    if (std.attendanceByDate?.[activeAttendanceDate]) {
+      return std.attendanceByDate[activeAttendanceDate].status;
+    }
+    return std.attendanceStatus;
+  };
+
+  const getStudentLedgerEntryForDate = (std: (typeof teacherStudents)[0]) =>
+    studentAttendanceLedger.find(
+      (e) =>
+        (e.studentId === std.id || e.studentName.toLowerCase() === std.fullName.toLowerCase()) &&
+        e.date === activeAttendanceDate
+    );
+
+  const presentCount = filteredStudents.filter((s) => getStudentStatusForDate(s) === 'PRESENT').length;
+  const absentCount = filteredStudents.filter((s) => getStudentStatusForDate(s) === 'ABSENT').length;
+  const lateCount = filteredStudents.filter((s) => getStudentStatusForDate(s) === 'LATE').length;
+  const totalCount = filteredStudents.length;
   const markedCount = presentCount + absentCount + lateCount;
 
   const handleSubmitAttendance = () => {
     setIsSubmitting(true);
+    filteredStudents.forEach((std) => {
+      const currentStatus = getStudentStatusForDate(std);
+      setStudentAttendance(std.id, currentStatus, activeAttendanceDate, selectedPeriodSubject);
+    });
     setTimeout(() => {
       setIsSubmitting(false);
-      showToast('Attendance recorded and synchronized to Parent & Student Portals');
-    }, 500);
+      showToast(
+        `Committed Roll Call for ${activeAttendanceDate} (${selectedPeriodSubject}) • Synced to all Student & Parent Portals`
+      );
+    }, 300);
   };
 
   return (
@@ -79,7 +109,17 @@ export const TeacherAttendanceScreen: React.FC<TeacherAttendanceScreenProps> = (
           </div>
         </div>
 
-        <div className="flex items-center space-x-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center space-x-1.5 bg-white px-2.5 py-1 rounded-lg border border-slate-300 text-xs">
+            <span className="font-bold text-slate-500 text-[11px]">Date:</span>
+            <input
+              type="date"
+              value={activeAttendanceDate}
+              onChange={(e) => setActiveAttendanceDate(e.target.value)}
+              className="font-bold text-navy bg-transparent focus:outline-none text-xs cursor-pointer"
+            />
+          </div>
+
           <select
             value={selectedSectionFilter}
             onChange={(e) => setSelectedSectionFilter(e.target.value)}
@@ -101,24 +141,68 @@ export const TeacherAttendanceScreen: React.FC<TeacherAttendanceScreenProps> = (
         </div>
       </div>
 
-      {/* Class Header Card (Image 6) */}
-      <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-xs flex items-center justify-between">
-        <div>
-          <span className="text-[10px] font-bold text-teal uppercase tracking-widest block">
-            {selectedSectionFilter === 'ALL' ? 'ALL ASSIGNED SECTIONS' : `SECTION ${selectedSectionFilter}`}
-          </span>
-          <h2 className="text-xl font-extrabold text-navy mt-0.5">
-            {selectedSectionFilter === 'ALL' ? 'Grade 9B & Assigned Cohorts — Mathematics' : `Grade ${selectedSectionFilter} — Mathematics`}
-          </h2>
-          <div className="flex items-center space-x-2 text-xs text-slate-500 mt-1">
-            <span>09:00 AM, Sep 23, 2026</span>
-            <span>•</span>
-            <span>Room 204</span>
+      {/* Class Header Card with Date Selector Pills */}
+      <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-xs space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <span className="text-[10px] font-bold text-teal uppercase tracking-widest block">
+              {selectedSectionFilter === 'ALL' ? 'ALL ASSIGNED SECTIONS' : `SECTION ${selectedSectionFilter}`} • ROLL CALL DATE: {activeAttendanceDate}
+            </span>
+            <h2 className="text-xl font-extrabold text-navy mt-0.5">
+              {selectedSectionFilter === 'ALL' ? 'Grade 9B & Assigned Cohorts — Mathematics' : `Grade ${selectedSectionFilter} — Mathematics`}
+            </h2>
+            <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500 mt-1">
+              <span className="font-bold text-navy">Date: {activeAttendanceDate}</span>
+              <span>•</span>
+              <select
+                value={selectedPeriodSubject}
+                onChange={(e) => setSelectedPeriodSubject(e.target.value)}
+                className="font-semibold text-teal bg-teal-50/70 px-2 py-0.5 rounded border border-teal-200 text-xs focus:outline-none"
+              >
+                <option value="Period 1 • Mathematics">Period 1 • Mathematics</option>
+                <option value="Period 2 • English Literature">Period 2 • English Literature</option>
+                <option value="Period 3 • AP Physics">Period 3 • AP Physics</option>
+                <option value="Period 4 • World History">Period 4 • World History</option>
+              </select>
+              <span>•</span>
+              <span>Room 204</span>
+            </div>
+          </div>
+
+          <div className="w-12 h-12 rounded-xl bg-sky-50 text-sky-700 flex items-center justify-center font-bold text-xl font-serif">
+            Σ
           </div>
         </div>
 
-        <div className="w-12 h-12 rounded-xl bg-sky-50 text-sky-700 flex items-center justify-center font-bold text-xl font-serif">
-          Σ
+        {/* Quick Date Switcher Pills for September 2026 Calendar */}
+        <div className="flex flex-wrap items-center gap-1.5 pt-2 border-t border-slate-100">
+          <span className="text-[10px] font-bold uppercase text-slate-400 mr-1">
+            Quick Roll Call Date:
+          </span>
+          {[
+            { label: 'Sep 14', date: '2026-09-14' },
+            { label: 'Sep 21', date: '2026-09-21' },
+            { label: 'Sep 22', date: '2026-09-22' },
+            { label: 'Sep 23', date: '2026-09-23' },
+            { label: 'Sep 24', date: '2026-09-24' },
+            { label: 'Sep 25', date: '2026-09-25' },
+            { label: 'Sep 28', date: '2026-09-28' },
+            { label: 'Sep 29', date: '2026-09-29' },
+            { label: 'Sep 30', date: '2026-09-30' },
+          ].map((d) => (
+            <button
+              key={d.date}
+              type="button"
+              onClick={() => setActiveAttendanceDate(d.date)}
+              className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition cursor-pointer ${
+                activeAttendanceDate === d.date
+                  ? 'bg-[#176B87] text-white shadow-2xs'
+                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              }`}
+            >
+              {d.label}
+            </button>
+          ))}
         </div>
       </div>
 
@@ -316,90 +400,118 @@ export const TeacherAttendanceScreen: React.FC<TeacherAttendanceScreenProps> = (
       {/* Fast Action Row */}
       <div className="flex items-center justify-between text-xs px-1">
         <button
-          onClick={markAllStudentsPresent}
-          className="flex items-center space-x-1.5 text-teal font-bold hover:underline"
+          onClick={() =>
+            markAllStudentsPresent(activeAttendanceDate, selectedSectionFilter, selectedPeriodSubject)
+          }
+          className="flex items-center space-x-1.5 text-teal font-bold hover:underline cursor-pointer"
         >
           <CheckCheck className="w-4 h-4" />
-          <span>Mark All Present</span>
+          <span>Mark All Present for {activeAttendanceDate}</span>
         </button>
 
-        <span className="text-slate-400 text-[11px]">Sorted by Roll No. &amp; Latest Admissions</span>
+        <span className="text-slate-400 text-[11px]">
+          Marking Attendance for <strong className="text-navy">{activeAttendanceDate}</strong> • Synced to Student Panel
+        </span>
       </div>
 
-      {/* Student List with Interactive P / A / L Buttons (Image 6) */}
+      {/* Student List with Interactive P / A / L Buttons (Date-Stamped) */}
       <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-xs divide-y divide-slate-100">
-        {filteredStudents.map((std) => (
-          <div
-            key={std.id}
-            className="p-4 flex items-center justify-between hover:bg-slate-50 transition"
-          >
-            {/* Student Info */}
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-800 font-bold flex items-center justify-center text-xs shrink-0">
-                {std.avatarInitials}
-              </div>
-              <div>
-                <div className="flex items-center space-x-2">
-                  <h4 className="font-bold text-navy text-sm">{std.fullName}</h4>
-                  <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-700 text-[10px] font-bold">
-                    Sec {std.section}
-                  </span>
+        {filteredStudents.map((std) => {
+          const currentStatus = getStudentStatusForDate(std);
+          const dateEntry = getStudentLedgerEntryForDate(std);
+
+          return (
+            <div
+              key={std.id}
+              className="p-4 flex items-center justify-between hover:bg-slate-50 transition"
+            >
+              {/* Student Info */}
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-800 font-bold flex items-center justify-center text-xs shrink-0">
+                  {std.avatarInitials}
                 </div>
-                <p className="text-[11px] text-slate-500">
-                  Roll No. {String(std.rollNo).padStart(2, '0')} • {std.grade}
-                  {std.parentName ? ` • Guardian: ${std.parentName} (${std.parentPhone})` : ''}
-                </p>
-                {std.instructorNote && (
-                  <p className="text-[10px] text-teal font-medium mt-0.5">
-                    {std.instructorNote}
+                <div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h4 className="font-bold text-navy text-sm">{std.fullName}</h4>
+                    <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-700 text-[10px] font-bold">
+                      Sec {std.section}
+                    </span>
+                    {dateEntry && (
+                      <span
+                        className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold ${
+                          dateEntry.status === 'PRESENT'
+                            ? 'bg-emerald-100 text-emerald-800'
+                            : dateEntry.status === 'ABSENT'
+                            ? 'bg-rose-100 text-rose-800'
+                            : 'bg-amber-100 text-amber-800'
+                        }`}
+                      >
+                        ✓ {dateEntry.status} on {activeAttendanceDate} ({dateEntry.markedAt})
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-slate-500">
+                    Roll No. {String(std.rollNo).padStart(2, '0')} • {std.grade}
+                    {std.parentName ? ` • Guardian: ${std.parentName} (${std.parentPhone})` : ''}
                   </p>
-                )}
+                  {std.instructorNote && (
+                    <p className="text-[10px] text-teal font-medium mt-0.5">
+                      {std.instructorNote}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Status Buttons P / A / L */}
+              <div className="flex items-center space-x-2">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setStudentAttendance(std.id, 'PRESENT', activeAttendanceDate, selectedPeriodSubject)
+                  }
+                  className={`w-9 h-9 rounded-full font-extrabold text-xs transition flex items-center justify-center cursor-pointer ${
+                    currentStatus === 'PRESENT'
+                      ? 'bg-emerald-600 text-white shadow-xs scale-105 ring-2 ring-emerald-300'
+                      : 'bg-slate-100 text-slate-500 hover:bg-emerald-50 hover:text-emerald-700'
+                  }`}
+                  title={`Mark ${std.fullName} Present on ${activeAttendanceDate}`}
+                >
+                  P
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    setStudentAttendance(std.id, 'ABSENT', activeAttendanceDate, selectedPeriodSubject)
+                  }
+                  className={`w-9 h-9 rounded-full font-extrabold text-xs transition flex items-center justify-center cursor-pointer ${
+                    currentStatus === 'ABSENT'
+                      ? 'bg-red-600 text-white shadow-xs scale-105 ring-2 ring-red-300'
+                      : 'bg-slate-100 text-slate-500 hover:bg-red-50 hover:text-red-700'
+                  }`}
+                  title={`Mark ${std.fullName} Absent on ${activeAttendanceDate}`}
+                >
+                  A
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    setStudentAttendance(std.id, 'LATE', activeAttendanceDate, selectedPeriodSubject)
+                  }
+                  className={`w-9 h-9 rounded-full font-extrabold text-xs transition flex items-center justify-center cursor-pointer ${
+                    currentStatus === 'LATE'
+                      ? 'bg-amber-600 text-white shadow-xs scale-105 ring-2 ring-amber-300'
+                      : 'bg-slate-100 text-slate-500 hover:bg-amber-50 hover:text-amber-700'
+                  }`}
+                  title={`Mark ${std.fullName} Late on ${activeAttendanceDate}`}
+                >
+                  L
+                </button>
               </div>
             </div>
-
-            {/* Status Buttons P / A / L */}
-            <div className="flex items-center space-x-2">
-              <button
-                type="button"
-                onClick={() => setStudentAttendance(std.id, 'PRESENT')}
-                className={`w-9 h-9 rounded-full font-extrabold text-xs transition flex items-center justify-center ${
-                  std.attendanceStatus === 'PRESENT'
-                    ? 'bg-emerald-600 text-white shadow-xs scale-105 ring-2 ring-emerald-300'
-                    : 'bg-slate-100 text-slate-500 hover:bg-emerald-50 hover:text-emerald-700'
-                }`}
-                title="Mark Present"
-              >
-                P
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setStudentAttendance(std.id, 'ABSENT')}
-                className={`w-9 h-9 rounded-full font-extrabold text-xs transition flex items-center justify-center ${
-                  std.attendanceStatus === 'ABSENT'
-                    ? 'bg-red-600 text-white shadow-xs scale-105 ring-2 ring-red-300'
-                    : 'bg-slate-100 text-slate-500 hover:bg-red-50 hover:text-red-700'
-                }`}
-                title="Mark Absent"
-              >
-                A
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setStudentAttendance(std.id, 'LATE')}
-                className={`w-9 h-9 rounded-full font-extrabold text-xs transition flex items-center justify-center ${
-                  std.attendanceStatus === 'LATE'
-                    ? 'bg-amber-600 text-white shadow-xs scale-105 ring-2 ring-amber-300'
-                    : 'bg-slate-100 text-slate-500 hover:bg-amber-50 hover:text-amber-700'
-                }`}
-                title="Mark Late"
-              >
-                L
-              </button>
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* CASPA Assistant Insight Card (Image 6) */}

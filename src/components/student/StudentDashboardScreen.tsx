@@ -28,7 +28,15 @@ interface StudentDashboardScreenProps {
 export const StudentDashboardScreen: React.FC<StudentDashboardScreenProps> = ({ onNavigate }) => {
   const {
     currentUser,
+    teacherStudents,
+    attendanceHeatmap,
+    studentAttendanceLedger,
+    selectedStudentForAttendanceView,
     studentPeriods,
+    masterTimetable,
+    activeTimetableWeek,
+    activeScheduleDay,
+    setActiveScheduleDay,
     studentTasks,
     createSafeguardingCase,
     createIncident,
@@ -51,7 +59,87 @@ export const StudentDashboardScreen: React.FC<StudentDashboardScreenProps> = ({ 
   // Career & Competitive Exam Selection (PDF Section 13 & 21)
   const [selectedStream, setSelectedStream] = useState('STEM • Physics, Chemistry, Math & CS (JEE / SAT)');
 
-  const livePeriod = studentPeriods.find((p) => p.status === 'LIVE_NOW') || studentPeriods[2];
+  // Compute live Attendance KPI for the active student
+  const activeStudentName =
+    currentUser?.roleType === 'STUDENT' &&
+    currentUser?.fullName &&
+    currentUser.fullName !== 'Elena Vance'
+      ? currentUser.fullName
+      : selectedStudentForAttendanceView || currentUser?.fullName || 'Elena Vance';
+
+  const activeStudentObj =
+    teacherStudents.find(
+      (s) => s.fullName.toLowerCase() === activeStudentName.toLowerCase()
+    ) || teacherStudents[0];
+
+  const studentLedgerEntries = studentAttendanceLedger.filter(
+    (entry) =>
+      entry.studentId === activeStudentObj?.id ||
+      entry.studentName.toLowerCase() === activeStudentName.toLowerCase()
+  );
+
+  const liveCalendarDays = attendanceHeatmap.map((day) => {
+    const dateStr = day.dateStr || `2026-09-${String(day.dayNumber).padStart(2, '0')}`;
+    const ledgerMatch = studentLedgerEntries.find((e) => e.date === dateStr);
+    const mapEntry = activeStudentObj?.attendanceByDate?.[dateStr];
+    return {
+      ...day,
+      dateStr,
+      status: ledgerMatch?.status || mapEntry?.status || day.status,
+    };
+  });
+
+  const extraDateEntries = studentLedgerEntries.filter(
+    (entry) => !liveCalendarDays.some((d) => d.dateStr === entry.date)
+  );
+  const schoolDays = liveCalendarDays.filter((d) => d.status !== 'WEEKEND');
+  const presentCount =
+    schoolDays.filter((d) => d.status === 'PRESENT').length +
+    extraDateEntries.filter((e) => e.status === 'PRESENT').length;
+  const lateCount =
+    schoolDays.filter((d) => d.status === 'LATE').length +
+    extraDateEntries.filter((e) => e.status === 'LATE').length;
+  const absentCount =
+    schoolDays.filter((d) => d.status === 'ABSENT').length +
+    extraDateEntries.filter((e) => e.status === 'ABSENT').length;
+  const totalDaysCount = presentCount + lateCount + absentCount;
+  const liveAttendanceRate =
+    totalDaysCount > 0
+      ? (((presentCount + lateCount * 0.5) / totalDaysCount) * 100).toFixed(1)
+      : '100.0';
+
+  // Live Today's Schedule directly synced from Master Timetable (Scheduled by Admin / Vice Principal / Teacher)
+  const publishedDaySlots = masterTimetable
+    .filter(
+      (s) =>
+        s.weekLabel === activeTimetableWeek &&
+        s.gradeSection === '9B' &&
+        s.day === activeScheduleDay &&
+        s.isPublished
+    )
+    .sort((a, b) => a.period - b.period);
+
+  const liveDayPeriods =
+    publishedDaySlots.length > 0
+      ? publishedDaySlots.map((s) => ({
+          id: s.id,
+          periodNumber: s.period,
+          timeRange: s.timeRange,
+          subject: s.subject,
+          unitTopic: s.unitTopic,
+          teacher: s.teacher,
+          room: s.room,
+          status: s.status,
+          completedAt: s.completedAt,
+          completedByTeacher: s.completedByTeacher,
+          lectureNote: s.lectureNote,
+        }))
+      : studentPeriods;
+
+  const livePeriod =
+    liveDayPeriods.find((p) => p.status === 'LIVE_NOW') ||
+    liveDayPeriods.find((p) => p.status !== 'COMPLETED') ||
+    liveDayPeriods[0];
   const pendingTasks = studentTasks.filter((t) => t.status === 'PENDING');
 
   const handleAskAiQuick = () => {
@@ -112,11 +200,11 @@ export const StudentDashboardScreen: React.FC<StudentDashboardScreenProps> = ({ 
             />
           </div>
           <h1 className="text-2xl md:text-3xl font-extrabold text-[#123B5D] tracking-tight flex items-center space-x-2">
-            <span>Hi, {currentUser?.fullName || 'Elena Vance'}</span>
+            <span>Hi, {activeStudentObj?.fullName || currentUser?.fullName || 'Elena Vance'}</span>
             <span>👋</span>
           </h1>
           <p className="text-xs md:text-sm text-slate-500 mt-0.5">
-            {currentUser?.designation || 'Grade 9B • Roll No. 14'} • Here&apos;s your student day at a glance.
+            {activeStudentObj ? `${activeStudentObj.grade}${activeStudentObj.section}` : 'Grade 9B'} • Roll No. {activeStudentObj?.rollNo || 14} • Here&apos;s your student day at a glance.
           </p>
         </div>
 
@@ -215,13 +303,20 @@ export const StudentDashboardScreen: React.FC<StudentDashboardScreenProps> = ({ 
 
       {/* Top 3 KPI Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs flex items-center justify-between">
+        <div
+          onClick={() => onNavigate('attendance')}
+          className="bg-white p-5 rounded-xl border border-slate-200 hover:border-emerald-300 shadow-xs flex items-center justify-between cursor-pointer transition"
+        >
           <div>
             <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
-              Attendance
+              Attendance ({activeStudentObj?.fullName.split(' ')[0] || 'Student'})
             </span>
-            <p className="text-3xl font-extrabold text-emerald-600 font-mono mt-1">96.2%</p>
-            <span className="text-xs text-slate-500">19/22 sessions attended</span>
+            <p className="text-3xl font-extrabold text-emerald-600 font-mono mt-1">
+              {liveAttendanceRate}%
+            </p>
+            <span className="text-xs text-slate-500">
+              {presentCount}/{totalDaysCount} days present • {absentCount} absent
+            </span>
           </div>
           <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
             <CalendarCheck className="w-6 h-6" />
@@ -343,24 +438,50 @@ export const StudentDashboardScreen: React.FC<StudentDashboardScreenProps> = ({ 
       {/* 2-Column: Today's Timetable + Homework Due Today */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         <div className="lg:col-span-7 bg-white rounded-xl border border-slate-200 p-5 shadow-xs space-y-4">
-          <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-            <div className="flex items-center space-x-2">
-              <h3 className="font-bold text-[#123B5D] text-sm">Today&apos;s Class Schedule</h3>
-              <span className="text-[11px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-semibold">
-                7 Periods
-              </span>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-100">
+            <div>
+              <div className="flex items-center space-x-2">
+                <h3 className="font-bold text-[#123B5D] text-sm">Today&apos;s Class Schedule</h3>
+                <span className="text-[11px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-semibold">
+                  {liveDayPeriods.length} Periods • {activeScheduleDay}
+                </span>
+                <span className="text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full font-bold">
+                  ● Live Synced
+                </span>
+              </div>
+              <p className="text-[10px] text-slate-400 mt-0.5">
+                {activeTimetableWeek} • Controlled by Admin (Academics), Vice Principal (Timetable) &amp; Class Teacher
+              </p>
             </div>
             <button
               onClick={() => onNavigate('timetable')}
-              className="text-xs text-[#176B87] font-semibold hover:underline flex items-center space-x-1"
+              className="text-xs text-[#176B87] font-semibold hover:underline flex items-center space-x-1 shrink-0 cursor-pointer"
             >
               <span>Full Week</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </button>
           </div>
 
+          {/* Active Schedule Day Switcher */}
+          <div className="flex items-center space-x-1 overflow-x-auto pb-1">
+            {(['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'] as const).map((day) => (
+              <button
+                key={day}
+                type="button"
+                onClick={() => setActiveScheduleDay(day)}
+                className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition cursor-pointer ${
+                  activeScheduleDay === day
+                    ? 'bg-[#123B5D] text-white shadow-2xs'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                }`}
+              >
+                {day.slice(0, 3)}
+              </button>
+            ))}
+          </div>
+
           <div className="space-y-3">
-            {studentPeriods.map((period) => {
+            {liveDayPeriods.map((period) => {
               const isLive = period.status === 'LIVE_NOW';
               const isCompleted = period.status === 'COMPLETED';
 
@@ -371,13 +492,15 @@ export const StudentDashboardScreen: React.FC<StudentDashboardScreenProps> = ({ 
                     isLive
                       ? 'bg-teal/5 border-[#176B87] shadow-xs'
                       : isCompleted
-                      ? 'bg-slate-50/70 border-slate-200 text-slate-600'
+                      ? 'bg-emerald-50/40 border-emerald-200 text-slate-700'
                       : 'bg-white border-slate-200 hover:border-slate-300'
                   }`}
                 >
                   <div className="flex items-center space-x-3">
                     <div className="text-center font-mono shrink-0 w-16">
-                      <p className="font-bold text-[#123B5D] text-xs">{period.timeRange.split(' - ')[0]}</p>
+                      <p className="font-bold text-[#123B5D] text-xs">
+                        P{period.periodNumber} • {period.timeRange.split(' - ')[0]}
+                      </p>
                       <p className="text-[10px] text-slate-400">{period.timeRange.split(' - ')[1] || ''}</p>
                     </div>
                     <div>
@@ -390,12 +513,13 @@ export const StudentDashboardScreen: React.FC<StudentDashboardScreenProps> = ({ 
                         )}
                         {isCompleted && (
                           <span className="text-[9px] bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.2 rounded">
-                            Done
+                            Done ✓
                           </span>
                         )}
                       </div>
                       <p className="text-[11px] text-slate-500">
                         {period.room} • {period.teacher}
+                        {period.unitTopic ? ` • ${period.unitTopic}` : ''}
                       </p>
                     </div>
                   </div>
@@ -415,16 +539,16 @@ export const StudentDashboardScreen: React.FC<StudentDashboardScreenProps> = ({ 
                         });
                         showToast(`Downloaded ${period.subject} Class Notes PDF`);
                       }}
-                      className="px-3 py-1 bg-[#176B87] text-white hover:bg-[#125870] rounded-md font-bold text-xs cursor-pointer"
+                      className="px-3 py-1 bg-[#176B87] text-white hover:bg-[#125870] rounded-md font-bold text-xs cursor-pointer shrink-0"
                     >
                       Notes
                     </button>
                   ) : isCompleted ? (
-                    <span className="px-2.5 py-1 bg-slate-100 text-slate-500 rounded text-xs font-medium">
-                      Attended
+                    <span className="px-2.5 py-1 bg-emerald-100 text-emerald-800 rounded text-[11px] font-bold shrink-0">
+                      Completed {period.completedAt ? `(${period.completedAt})` : ''}
                     </span>
                   ) : (
-                    <span className="px-2.5 py-1 bg-slate-100 text-slate-600 rounded text-xs font-medium">
+                    <span className="px-2.5 py-1 bg-slate-100 text-slate-600 rounded text-xs font-medium shrink-0">
                       Upcoming
                     </span>
                   )}

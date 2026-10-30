@@ -9,6 +9,7 @@ import {
   StudyMaterialItem,
   StudentAchievement,
   AttendanceDayRecord,
+  StudentDateAttendanceEntry,
   Student,
   AttendanceRecord,
   SafetyIncident,
@@ -2483,6 +2484,73 @@ class DatabaseStore {
   studyMaterials: StudyMaterialItem[] = [...INITIAL_STUDY_MATERIALS];
   studentAchievements: StudentAchievement[] = [...INITIAL_STUDENT_ACHIEVEMENTS];
   attendanceHeatmap: AttendanceDayRecord[] = [...INITIAL_ATTENDANCE_HEATMAP];
+  studentAttendanceLedger: StudentDateAttendanceEntry[] = [
+    {
+      id: 'att-seed-23-elena',
+      studentId: 'ts-5',
+      studentName: 'Elena Vance',
+      gradeSection: 'Grade 9B',
+      rollNo: 14,
+      date: '2026-09-23',
+      dayNumber: 23,
+      status: 'PRESENT',
+      markedBy: 'Mrs. Oswald',
+      markedAt: '09:05 AM',
+      periodSubject: 'Period 1 • Mathematics',
+    },
+    {
+      id: 'att-seed-22-elena',
+      studentId: 'ts-5',
+      studentName: 'Elena Vance',
+      gradeSection: 'Grade 9B',
+      rollNo: 14,
+      date: '2026-09-22',
+      dayNumber: 22,
+      status: 'LATE',
+      markedBy: 'Mrs. Oswald',
+      markedAt: '09:12 AM',
+      periodSubject: 'Period 1 • Mathematics',
+    },
+    {
+      id: 'att-seed-14-elena',
+      studentId: 'ts-5',
+      studentName: 'Elena Vance',
+      gradeSection: 'Grade 9B',
+      rollNo: 14,
+      date: '2026-09-14',
+      dayNumber: 14,
+      status: 'ABSENT',
+      markedBy: 'Mrs. Oswald',
+      markedAt: '09:00 AM',
+      periodSubject: 'Period 1 • Mathematics',
+    },
+    {
+      id: 'att-seed-23-marcus',
+      studentId: 'ts-2',
+      studentName: 'Marcus Brody',
+      gradeSection: 'Grade 9B',
+      rollNo: 3,
+      date: '2026-09-23',
+      dayNumber: 23,
+      status: 'ABSENT',
+      markedBy: 'Mrs. Oswald',
+      markedAt: '09:05 AM',
+      periodSubject: 'Period 1 • Mathematics',
+    },
+    {
+      id: 'att-seed-23-aria',
+      studentId: 'ts-1',
+      studentName: 'Aria Montgomery',
+      gradeSection: 'Grade 9B',
+      rollNo: 1,
+      date: '2026-09-23',
+      dayNumber: 23,
+      status: 'LATE',
+      markedBy: 'Mrs. Oswald',
+      markedAt: '09:08 AM',
+      periodSubject: 'Period 1 • Mathematics',
+    },
+  ];
   absenceExcuses: {
     id: string;
     studentName: string;
@@ -2878,21 +2946,109 @@ class DatabaseStore {
     return item;
   }
 
-  // Teacher Attendance Methods
-  setStudentAttendance(studentId: string, status: 'PRESENT' | 'ABSENT' | 'LATE') {
+  // Teacher Attendance Methods (Date-Aware & Synced to Student Panel)
+  setStudentAttendance(
+    studentId: string,
+    status: 'PRESENT' | 'ABSENT' | 'LATE',
+    dateStr: string = '2026-09-23',
+    periodSubject: string = 'Period 1 • Mathematics'
+  ) {
     const std = this.teacherStudents.find((s) => s.id === studentId);
+    const teacherName =
+      this.currentUser?.roleType === 'TEACHER' ? this.currentUser.fullName : 'Mrs. Oswald';
+    const timeNow = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
     if (std) {
       std.attendanceStatus = status;
-      this.logAudit('Mrs. Oswald', 'TEACHER', 'MARK_ATTENDANCE', 'ATTENDANCE', std.fullName, `Marked ${std.fullName} as ${status}`);
+      if (!std.attendanceByDate) {
+        std.attendanceByDate = {};
+      }
+      std.attendanceByDate[dateStr] = {
+        status,
+        markedBy: teacherName,
+        markedAt: timeNow,
+        periodSubject,
+      };
+
+      const parts = dateStr.split('-');
+      const dayNum = parts.length === 3 ? parseInt(parts[2], 10) : 23;
+
+      const existingIdx = this.studentAttendanceLedger.findIndex(
+        (e) =>
+          (e.studentId === std.id || e.studentName.toLowerCase() === std.fullName.toLowerCase()) &&
+          e.date === dateStr
+      );
+
+      const entry: StudentDateAttendanceEntry = {
+        id: existingIdx >= 0 ? this.studentAttendanceLedger[existingIdx].id : `att-${Date.now()}-${std.id}`,
+        studentId: std.id,
+        studentName: std.fullName,
+        gradeSection: std.grade,
+        rollNo: std.rollNo,
+        date: dateStr,
+        dayNumber: dayNum,
+        status,
+        markedBy: teacherName,
+        markedAt: timeNow,
+        periodSubject,
+      };
+
+      if (existingIdx >= 0) {
+        this.studentAttendanceLedger[existingIdx] = entry;
+      } else {
+        this.studentAttendanceLedger.unshift(entry);
+      }
+
+      // Also update the base heatmap day cell if dayNum is 1..30
+      const heatmapCell = this.attendanceHeatmap.find((d) => d.dayNumber === dayNum);
+      if (heatmapCell) {
+        heatmapCell.status = status;
+        heatmapCell.dateStr = dateStr;
+        heatmapCell.markedByTeacher = teacherName;
+        heatmapCell.markedAt = timeNow;
+        heatmapCell.periodSubject = periodSubject;
+        heatmapCell.studentName = std.fullName;
+        heatmapCell.hasIncident = status === 'ABSENT';
+      }
+
+      this.logAudit(
+        teacherName,
+        'TEACHER',
+        'MARK_ATTENDANCE',
+        'ATTENDANCE',
+        `${std.fullName} (${dateStr})`,
+        `Marked ${std.fullName} as ${status} on ${dateStr} (${periodSubject})`
+      );
     }
     return std;
   }
 
-  markAllStudentsPresent() {
-    this.teacherStudents.forEach((s) => {
-      s.attendanceStatus = 'PRESENT';
+  markAllStudentsPresent(
+    dateStr: string = '2026-09-23',
+    sectionFilter: string = 'ALL',
+    periodSubject: string = 'Period 1 • Mathematics'
+  ) {
+    const teacherName =
+      this.currentUser?.roleType === 'TEACHER' ? this.currentUser.fullName : 'Mrs. Oswald';
+    const targets = this.teacherStudents.filter(
+      (s) =>
+        sectionFilter === 'ALL' ||
+        s.section.toLowerCase() === sectionFilter.toLowerCase() ||
+        s.grade.toLowerCase().includes(sectionFilter.toLowerCase())
+    );
+
+    targets.forEach((s) => {
+      this.setStudentAttendance(s.id, 'PRESENT', dateStr, periodSubject);
     });
-    this.logAudit('Mrs. Oswald', 'TEACHER', 'BATCH_ATTENDANCE', 'ATTENDANCE', 'Grade 9B', 'Marked all 32 students present');
+
+    this.logAudit(
+      teacherName,
+      'TEACHER',
+      'BATCH_ATTENDANCE',
+      'ATTENDANCE',
+      `Section ${sectionFilter} (${dateStr})`,
+      `Marked all ${targets.length} students present for ${dateStr}`
+    );
     return this.teacherStudents;
   }
 

@@ -19,9 +19,12 @@ export const StudentTimetableScreen: React.FC = () => {
     availableTimetableWeeks,
     activeTimetableWeek,
     setActiveTimetableWeek,
+    activeScheduleDay,
+    setActiveScheduleDay,
     showToast,
   } = useApp();
-  const [selectedDay, setSelectedDay] = useState<string>('Monday');
+  const selectedDay = activeScheduleDay;
+  const setSelectedDay = (d: string) => setActiveScheduleDay(d as any);
 
   const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 

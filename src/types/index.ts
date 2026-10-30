@@ -122,8 +122,27 @@ export interface StudentAchievement {
 
 export interface AttendanceDayRecord {
   dayNumber: number;
+  dateStr?: string;
   status: 'PRESENT' | 'ABSENT' | 'LATE' | 'WEEKEND';
   hasIncident?: boolean;
+  markedByTeacher?: string;
+  markedAt?: string;
+  periodSubject?: string;
+  studentName?: string;
+}
+
+export interface StudentDateAttendanceEntry {
+  id: string;
+  studentId: string;
+  studentName: string;
+  gradeSection: string;
+  rollNo: number;
+  date: string;
+  dayNumber: number;
+  status: 'PRESENT' | 'ABSENT' | 'LATE';
+  markedBy: string;
+  markedAt: string;
+  periodSubject: string;
 }
 
 export interface AbsenceExcuseItem {
@@ -161,6 +180,15 @@ export interface TeacherStudent {
   grade: string;
   section: string;
   attendanceStatus: 'PRESENT' | 'ABSENT' | 'LATE';
+  attendanceByDate?: Record<
+    string,
+    {
+      status: 'PRESENT' | 'ABSENT' | 'LATE';
+      markedBy: string;
+      markedAt: string;
+      periodSubject: string;
+    }
+  >;
   unitTestScore: number | null;
   maxScore: number;
   instructorNote?: string;

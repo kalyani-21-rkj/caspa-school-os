@@ -54,16 +54,20 @@ export const AdminAcademicsScreen: React.FC = () => {
     availableTimetableWeeks,
     activeTimetableWeek,
     setActiveTimetableWeek,
+    activeScheduleDay,
+    setActiveScheduleDay,
     addTimetableWeek,
     addOrUpdateTimetableSlot,
     deleteTimetableSlot,
     generateWeeklyTimetable,
     publishMasterTimetable,
     togglePeriodCompletion,
+    setPeriodLiveStatus,
   } = useApp();
 
   const [selectedSection, setSelectedSection] = useState<string>('9B');
-  const [selectedDay, setSelectedDay] = useState<MasterTimetableSlot['day']>('Monday');
+  const selectedDay = activeScheduleDay;
+  const setSelectedDay = setActiveScheduleDay;
   const [viewMode, setViewMode] = useState<'day' | 'weekGrid'>('day');
 
   // Modals
@@ -534,6 +538,23 @@ export const AdminAcademicsScreen: React.FC = () => {
                       <span className="font-mono text-[11px] font-bold text-teal bg-teal/10 px-2.5 py-1 rounded-lg">
                         {slot.room}
                       </span>
+
+                      <button
+                        onClick={() =>
+                          setPeriodLiveStatus(
+                            slot.id,
+                            slot.status === 'LIVE_NOW' ? 'UPCOMING' : 'LIVE_NOW'
+                          )
+                        }
+                        className={`px-2.5 py-1.5 rounded-lg font-bold text-xs transition cursor-pointer ${
+                          slot.status === 'LIVE_NOW'
+                            ? 'bg-[#176B87] text-white shadow-2xs ring-2 ring-teal/30'
+                            : 'bg-sky-50 hover:bg-sky-100 text-sky-800 border border-sky-200'
+                        }`}
+                        title="Set as Active Live Class on Student Dashboard"
+                      >
+                        {slot.status === 'LIVE_NOW' ? '● Live Now' : 'Set Live Now'}
+                      </button>
 
                       <button
                         onClick={() => togglePeriodCompletion(slot.id, slot.teacher)}

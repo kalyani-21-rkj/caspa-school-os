@@ -11,6 +11,7 @@ import {
   StudyMaterialItem,
   StudentAchievement,
   AttendanceDayRecord,
+  StudentDateAttendanceEntry,
   Student,
   AttendanceRecord,
   SafetyIncident,
@@ -114,6 +115,11 @@ interface AppContextType {
   studyMaterials: StudyMaterialItem[];
   studentAchievements: StudentAchievement[];
   attendanceHeatmap: AttendanceDayRecord[];
+  studentAttendanceLedger: StudentDateAttendanceEntry[];
+  activeAttendanceDate: string;
+  setActiveAttendanceDate: (dateStr: string) => void;
+  selectedStudentForAttendanceView: string;
+  setSelectedStudentForAttendanceView: (studentName: string) => void;
   absenceExcuses: AbsenceExcuseItem[];
   submitStudentTask: (
     taskId: string,
@@ -132,8 +138,13 @@ interface AppContextType {
   teacherStudents: TeacherStudent[];
   teacherTasks: TeacherTask[];
   parentMessages: ParentMessage[];
-  setStudentAttendance: (studentId: string, status: 'PRESENT' | 'ABSENT' | 'LATE') => void;
-  markAllStudentsPresent: () => void;
+  setStudentAttendance: (
+    studentId: string,
+    status: 'PRESENT' | 'ABSENT' | 'LATE',
+    dateStr?: string,
+    periodSubject?: string
+  ) => void;
+  markAllStudentsPresent: (dateStr?: string, sectionFilter?: string, periodSubject?: string) => void;
   updateStudentGrade: (studentId: string, score: number | null, note?: string) => void;
   createTask: (title: string, type: 'HOMEWORK' | 'ASSIGNMENT', gradeSection: string, dueDate: string, description?: string) => void;
   gradeStudentTaskSubmission: (teacherTaskId: string, score: number, feedback: string) => void;
@@ -155,6 +166,8 @@ interface AppContextType {
   availableTimetableWeeks: string[];
   activeTimetableWeek: string;
   setActiveTimetableWeek: (week: string) => void;
+  activeScheduleDay: MasterTimetableSlot['day'];
+  setActiveScheduleDay: (day: MasterTimetableSlot['day']) => void;
   addTimetableWeek: (weekLabel: string) => void;
   addOrUpdateTimetableSlot: (
     slotData: Omit<MasterTimetableSlot, 'id'> & { id?: string; applyToAllWeekdays?: boolean }
@@ -169,6 +182,7 @@ interface AppContextType {
   }) => void;
   publishMasterTimetable: (weekLabel: string, gradeSection?: string) => void;
   togglePeriodCompletion: (slotOrClassId: string, teacherName?: string, lectureNote?: string) => void;
+  setPeriodLiveStatus: (slotId: string, status: 'LIVE_NOW' | 'UPCOMING' | 'COMPLETED') => void;
 
   // Admin Actions
   admitStudent: (data: {
@@ -255,7 +269,16 @@ interface AppContextType {
   updateVpLessonPlanStatus: (planId: string, status: 'APPROVED' | 'NEEDS_REVISION' | 'REJECTED', note?: string) => void;
   publishVpExamResult: (queueItemId: string) => void;
   pingTeacherReminder: (teacherId: string, customMessage?: string) => void;
-  addPeriodOverride: (data: { period: string; class: string; room: string; teacher: string }) => void;
+  addPeriodOverride: (data: {
+    period: string;
+    class: string;
+    room: string;
+    teacher: string;
+    subject?: string;
+    unitTopic?: string;
+    day?: MasterTimetableSlot['day'];
+    timeRange?: string;
+  }) => void;
 
   // Parent Module State & Actions (Images 1-7)
   activeChildId: string;
@@ -299,12 +322,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [isMobileSimulatorOpen, setIsMobileSimulatorOpen] = useState<boolean>(false);
   const [simulatorRole, setSimulatorRole] = useState<RoleType>('STUDENT');
 
-  // Student Module Data
-  const [studentPeriods, setStudentPeriods] = useState<StudentPeriod[]>([...INITIAL_STUDENT_PERIODS]);
+  // Student Module Data (studentPeriods defined below masterTimetable)
   const [studentTasks, setStudentTasks] = useState<StudentTaskItem[]>([...INITIAL_STUDENT_TASKS]);
   const [studyMaterials, setStudyMaterials] = useState<StudyMaterialItem[]>([...INITIAL_STUDY_MATERIALS]);
   const [studentAchievements, setStudentAchievements] = useState<StudentAchievement[]>([...INITIAL_STUDENT_ACHIEVEMENTS]);
   const [attendanceHeatmap, setAttendanceHeatmap] = useState<AttendanceDayRecord[]>([...INITIAL_ATTENDANCE_HEATMAP]);
+  const [studentAttendanceLedger, setStudentAttendanceLedger] = useState<StudentDateAttendanceEntry[]>([
+    ...db.studentAttendanceLedger,
+  ]);
+  const [activeAttendanceDate, setActiveAttendanceDate] = useState<string>('2026-09-23');
+  const [selectedStudentForAttendanceView, setSelectedStudentForAttendanceView] = useState<string>('Elena Vance');
   const [absenceExcuses, setAbsenceExcuses] = useState<AbsenceExcuseItem[]>([...db.absenceExcuses]);
 
   // Teacher Module Data
@@ -330,6 +357,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   ];
   const [availableTimetableWeeks, setAvailableTimetableWeeks] = useState<string[]>(DEFAULT_TIMETABLE_WEEKS);
   const [activeTimetableWeek, setActiveTimetableWeek] = useState<string>(DEFAULT_TIMETABLE_WEEKS[0]);
+  const [activeScheduleDay, setActiveScheduleDay] = useState<MasterTimetableSlot['day']>('Monday');
 
   const buildInitialMasterTimetable = (): MasterTimetableSlot[] => {
     const days: MasterTimetableSlot['day'][] = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -356,6 +384,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       for (const day of days) {
         const daySlots9B = day === 'Saturday' ? base9BSlots.slice(0, 4) : base9BSlots;
         daySlots9B.forEach((slot) => {
+          const isCompleted = day === 'Monday' && slot.period === 1 && week === DEFAULT_TIMETABLE_WEEKS[0];
+          const isLiveNow = day === 'Monday' && slot.period === 2 && week === DEFAULT_TIMETABLE_WEEKS[0];
           generated.push({
             id: `tt-${week.slice(0, 6).replace(/\s+/g, '')}-9B-${day}-P${slot.period}`,
             weekLabel: week,
@@ -369,9 +399,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             room: slot.room,
             isPublished: true,
             publishedAt: 'Oct 25, 2026 • 04:30 PM',
-            status: day === 'Monday' && slot.period === 1 && week === DEFAULT_TIMETABLE_WEEKS[0] ? 'COMPLETED' : 'UPCOMING',
-            completedAt: day === 'Monday' && slot.period === 1 && week === DEFAULT_TIMETABLE_WEEKS[0] ? '09:15 AM' : undefined,
-            completedByTeacher: day === 'Monday' && slot.period === 1 && week === DEFAULT_TIMETABLE_WEEKS[0] ? slot.teacher : undefined,
+            status: isCompleted ? 'COMPLETED' : isLiveNow ? 'LIVE_NOW' : 'UPCOMING',
+            completedAt: isCompleted ? '09:15 AM' : undefined,
+            completedByTeacher: isCompleted ? slot.teacher : undefined,
           });
         });
 
@@ -399,6 +429,29 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const [masterTimetable, setMasterTimetable] = useState<MasterTimetableSlot[]>(() => buildInitialMasterTimetable());
+
+  // Student Module Data (studentPeriods initialized live from masterTimetable for 9B)
+  const [studentPeriods, setStudentPeriods] = useState<StudentPeriod[]>(() =>
+    buildInitialMasterTimetable()
+      .filter((s) => s.weekLabel === DEFAULT_TIMETABLE_WEEKS[0] && s.gradeSection === '9B' && s.day === 'Monday' && s.isPublished)
+      .sort((a, b) => a.period - b.period)
+      .map((s) => ({
+        id: s.id,
+        periodNumber: s.period,
+        timeRange: s.timeRange,
+        subject: s.subject,
+        unitTopic: s.unitTopic,
+        teacher: s.teacher,
+        room: s.room,
+        status: s.status,
+        weekLabel: s.weekLabel,
+        day: s.day,
+        gradeSection: s.gradeSection,
+        completedAt: s.completedAt,
+        completedByTeacher: s.completedByTeacher,
+        lectureNote: s.lectureNote,
+      }))
+  );
 
   // Principal & Governance Data
   const [principalAgenda, setPrincipalAgenda] = useState<PrincipalAgendaItem[]>([...INITIAL_PRINCIPAL_AGENDA]);
@@ -564,16 +617,39 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
-  // Teacher Attendance
-  const setStudentAttendance = (studentId: string, status: 'PRESENT' | 'ABSENT' | 'LATE') => {
-    db.setStudentAttendance(studentId, status);
+  // Teacher Attendance (Date-Aware & Live Synced to Student Panel)
+  const setStudentAttendance = (
+    studentId: string,
+    status: 'PRESENT' | 'ABSENT' | 'LATE',
+    dateStr: string = activeAttendanceDate,
+    periodSubject: string = 'Period 1 • Mathematics'
+  ) => {
+    const std = db.setStudentAttendance(studentId, status, dateStr, periodSubject);
     setTeacherStudents([...db.teacherStudents]);
+    setStudentAttendanceLedger([...db.studentAttendanceLedger]);
+    setAttendanceHeatmap([...db.attendanceHeatmap]);
+    setAuditLogs([...db.auditLogs]);
+    if (std) {
+      setSelectedStudentForAttendanceView(std.fullName);
+      showToast(
+        `Marked ${std.fullName} as ${status} on ${dateStr} • Synced to ${std.fullName}'s Student Panel`
+      );
+    }
   };
 
-  const markAllStudentsPresent = () => {
-    db.markAllStudentsPresent();
+  const markAllStudentsPresent = (
+    dateStr: string = activeAttendanceDate,
+    sectionFilter: string = 'ALL',
+    periodSubject: string = 'Period 1 • Mathematics'
+  ) => {
+    db.markAllStudentsPresent(dateStr, sectionFilter, periodSubject);
     setTeacherStudents([...db.teacherStudents]);
-    showToast('Marked all students in Section 9B as Present');
+    setStudentAttendanceLedger([...db.studentAttendanceLedger]);
+    setAttendanceHeatmap([...db.attendanceHeatmap]);
+    setAuditLogs([...db.auditLogs]);
+    showToast(
+      `Marked all students in ${sectionFilter === 'ALL' ? 'all sections' : `Section ${sectionFilter}`} as Present for ${dateStr}`
+    );
   };
 
   // Teacher Grading
@@ -978,10 +1054,51 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
-  const addPeriodOverride = (data: { period: string; class: string; room: string; teacher: string }) => {
+  const addPeriodOverride = (data: {
+    period: string;
+    class: string;
+    room: string;
+    teacher: string;
+    subject?: string;
+    unitTopic?: string;
+    day?: MasterTimetableSlot['day'];
+    timeRange?: string;
+  }) => {
     db.addPeriodOverride(data);
     setAuditLogs([...db.auditLogs]);
-    showToast(`Period override saved for ${data.period}`);
+
+    // Parse period number (e.g., "Period 2 (09:20 - 10:05 AM)" -> 2)
+    const periodMatch = data.period.match(/\d+/);
+    const periodNum = periodMatch ? parseInt(periodMatch[0], 10) : 2;
+    const defaultTimings: Record<number, string> = {
+      1: '08:30 - 09:15 AM',
+      2: '09:20 - 10:05 AM',
+      3: '10:15 - 11:00 AM',
+      4: '11:05 - 11:50 AM',
+      5: '12:35 - 01:20 PM',
+      6: '01:25 - 02:10 PM',
+      7: '02:15 - 03:00 PM',
+    };
+    const normalizedSection = data.class.replace(/^Grade\s*/i, '').replace(/^Sec\s*/i, '').trim() || '9B';
+    const targetDay = data.day || activeScheduleDay;
+
+    addOrUpdateTimetableSlot({
+      weekLabel: activeTimetableWeek,
+      gradeSection: normalizedSection,
+      day: targetDay,
+      period: periodNum,
+      timeRange: data.timeRange || defaultTimings[periodNum] || '09:20 - 10:05 AM',
+      subject: data.subject || (data.teacher.includes('(') ? data.teacher.split('(')[1].replace(')', '').trim() : 'Scheduled Period Override'),
+      unitTopic: data.unitTopic || `Authorized Override • Assigned by Vice Principal`,
+      teacher: data.teacher.split('(')[0].trim() || data.teacher,
+      room: data.room,
+      isPublished: true,
+      status: 'UPCOMING',
+    });
+
+    showToast(
+      `Period ${periodNum} (${normalizedSection} • ${targetDay}) updated & synced to Student & Teacher Portals`
+    );
   };
 
   // ================= PARENT MODULE HANDLERS (Images 1-7) =================
@@ -1061,10 +1178,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     showToast(`Created & selected timetable week: "${trimmed}"`);
   };
 
-  const syncTimetableToTeacherAndStudent = (updatedSlots: MasterTimetableSlot[], targetWeek: string) => {
-    // Sync Monday/active day Grade 9B slots to studentPeriods
+  const syncTimetableToTeacherAndStudent = (
+    updatedSlots: MasterTimetableSlot[],
+    targetWeek: string,
+    targetDay: MasterTimetableSlot['day'] = activeScheduleDay
+  ) => {
+    // Sync active day Grade 9B slots to studentPeriods
     const published9BSlots = updatedSlots
-      .filter((s) => s.weekLabel === targetWeek && s.gradeSection === '9B' && s.day === 'Monday' && s.isPublished)
+      .filter((s) => s.weekLabel === targetWeek && s.gradeSection === '9B' && s.day === targetDay && s.isPublished)
       .sort((a, b) => a.period - b.period);
 
     if (published9BSlots.length > 0) {
@@ -1088,13 +1209,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       );
     }
 
-    // Sync Mrs. Oswald's published slots for Monday in targetWeek to teacherClasses
+    // Sync Mrs. Oswald's published slots for targetDay in targetWeek to teacherClasses
     const oswaldSlots = updatedSlots
       .filter(
         (s) =>
           s.weekLabel === targetWeek &&
           s.isPublished &&
-          s.day === 'Monday' &&
+          s.day === targetDay &&
           (s.teacher.toLowerCase().includes('oswald') || s.subject.toLowerCase().includes('math') || s.subject.toLowerCase().includes('algebra'))
       )
       .sort((a, b) => a.period - b.period);
@@ -1125,6 +1246,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       });
     }
   };
+
+  useEffect(() => {
+    syncTimetableToTeacherAndStudent(masterTimetable, activeTimetableWeek, activeScheduleDay);
+  }, [activeTimetableWeek, activeScheduleDay]);
 
   const addOrUpdateTimetableSlot = (
     slotData: Omit<MasterTimetableSlot, 'id'> & { id?: string; applyToAllWeekdays?: boolean }
@@ -1362,6 +1487,38 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     );
   };
 
+  const setPeriodLiveStatus = (slotId: string, status: 'LIVE_NOW' | 'UPCOMING' | 'COMPLETED') => {
+    const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    setMasterTimetable((prev) => {
+      const targetSlot = prev.find((s) => s.id === slotId);
+      const updated = prev.map((slot) => {
+        if (slot.id === slotId) {
+          return {
+            ...slot,
+            status,
+            completedAt: status === 'COMPLETED' ? timestamp : undefined,
+            completedByTeacher: status === 'COMPLETED' ? slot.teacher : undefined,
+          };
+        }
+        // If setting a slot to LIVE_NOW, clear LIVE_NOW on other slots in same section/day
+        if (
+          status === 'LIVE_NOW' &&
+          targetSlot &&
+          slot.weekLabel === targetSlot.weekLabel &&
+          slot.gradeSection === targetSlot.gradeSection &&
+          slot.day === targetSlot.day &&
+          slot.status === 'LIVE_NOW'
+        ) {
+          return { ...slot, status: 'UPCOMING' as const };
+        }
+        return slot;
+      });
+      syncTimetableToTeacherAndStudent(updated, activeTimetableWeek, activeScheduleDay);
+      return updated;
+    });
+    showToast(`Updated period status to ${status.replace('_', ' ')} (Synced to Student Today's Schedule)`);
+  };
+
   return (
     <AppContext.Provider
       value={{
@@ -1388,6 +1545,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         studyMaterials,
         studentAchievements,
         attendanceHeatmap,
+        studentAttendanceLedger,
+        activeAttendanceDate,
+        setActiveAttendanceDate,
+        selectedStudentForAttendanceView,
+        setSelectedStudentForAttendanceView,
         absenceExcuses,
         submitStudentTask,
         submitAbsenceExcuse,
@@ -1417,12 +1579,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         availableTimetableWeeks,
         activeTimetableWeek,
         setActiveTimetableWeek,
+        activeScheduleDay,
+        setActiveScheduleDay,
         addTimetableWeek,
         addOrUpdateTimetableSlot,
         deleteTimetableSlot,
         generateWeeklyTimetable,
         publishMasterTimetable,
         togglePeriodCompletion,
+        setPeriodLiveStatus,
         admitStudent,
         updateStudent,
         archiveStudent,

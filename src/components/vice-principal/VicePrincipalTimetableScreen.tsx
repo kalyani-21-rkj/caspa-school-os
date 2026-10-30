@@ -26,12 +26,22 @@ interface VicePrincipalTimetableScreenProps {
 export const VicePrincipalTimetableScreen: React.FC<VicePrincipalTimetableScreenProps> = ({
   onBack,
 }) => {
-  const { vpConflicts, resolveVpConflict, addPeriodOverride, showToast } = useApp();
+  const {
+    vpConflicts,
+    resolveVpConflict,
+    addPeriodOverride,
+    masterTimetable,
+    activeTimetableWeek,
+    activeScheduleDay,
+    setActiveScheduleDay,
+    togglePeriodCompletion,
+    setPeriodLiveStatus,
+    showToast,
+  } = useApp();
 
-  const [selectedGrade, setSelectedGrade] = useState('Grade 10');
-  const [selectedSec, setSelectedSec] = useState('Sec A');
+  const [selectedGrade, setSelectedGrade] = useState('Grade 9');
+  const [selectedSec, setSelectedSec] = useState('Sec B');
   const [viewMode, setViewMode] = useState<'class' | 'teacher'>('class');
-  const [selectedDay, setSelectedDay] = useState('Wed 24');
 
   // Interactive Period State
   const [p2Assigned, setP2Assigned] = useState(false);
@@ -39,21 +49,37 @@ export const VicePrincipalTimetableScreen: React.FC<VicePrincipalTimetableScreen
 
   // Modals
   const [isOverrideModalOpen, setIsOverrideModalOpen] = useState(false);
-  const [overridePeriod, setOverridePeriod] = useState('Period 2');
-  const [overrideClass, setOverrideClass] = useState('Grade 10A');
-  const [overrideRoom, setOverrideRoom] = useState('Room 205');
-  const [overrideTeacher, setOverrideTeacher] = useState('Ms. Taylor (English)');
+  const [overridePeriod, setOverridePeriod] = useState('Period 2 (09:20 - 10:05 AM)');
+  const [overrideSubject, setOverrideSubject] = useState('Advanced Robotics & AI Lab');
+  const [overrideTopic, setOverrideTopic] = useState('Autonomous Sensor Integration & Python Control');
+  const [overrideClass, setOverrideClass] = useState('Grade 9B');
+  const [overrideRoom, setOverrideRoom] = useState('STEM Lab 204');
+  const [overrideTeacher, setOverrideTeacher] = useState('Mr. Anand Sharma');
 
-  const activeConflicts = vpConflicts.filter(c => c.status === 'ACTIVE');
+  const activeConflicts = vpConflicts.filter((c) => c.status === 'ACTIVE');
 
-  const days = [
-    { day: 'MON', date: '22', id: 'Mon 22' },
-    { day: 'TUE', date: '23', id: 'Tue 23' },
-    { day: 'WED', date: '24', id: 'Wed 24', month: 'Sep' },
-    { day: 'THU', date: '25', id: 'Thu 25' },
-    { day: 'FRI', date: '26', id: 'Fri 26' },
-    { day: 'SAT', date: '27', id: 'Sat 27' },
+  const days: { day: string; date: string; id: typeof activeScheduleDay; month?: string }[] = [
+    { day: 'MON', date: '26', id: 'Monday', month: 'Oct' },
+    { day: 'TUE', date: '27', id: 'Tuesday' },
+    { day: 'WED', date: '28', id: 'Wednesday' },
+    { day: 'THU', date: '29', id: 'Thursday' },
+    { day: 'FRI', date: '30', id: 'Friday' },
+    { day: 'SAT', date: '31', id: 'Saturday' },
   ];
+
+  // Resolve target section code (e.g. "Grade 9" + "Sec B" -> "9B")
+  const gradeNum = selectedGrade.replace('Grade ', '').trim();
+  const secLetter = selectedSec.replace('Sec ', '').trim();
+  const currentSectionCode = `${gradeNum}${secLetter}`;
+
+  const liveSectionDaySlots = masterTimetable
+    .filter(
+      (s) =>
+        s.weekLabel === activeTimetableWeek &&
+        s.gradeSection === (currentSectionCode === '9B' || currentSectionCode === '10A' ? currentSectionCode : '9B') &&
+        s.day === activeScheduleDay
+    )
+    .sort((a, b) => a.period - b.period);
 
   const handleResolveLabConflict = () => {
     resolveVpConflict('conf-1', 'Relocated Grade 12 Chemistry to Lab 2 (Annex).');
@@ -71,8 +97,11 @@ export const VicePrincipalTimetableScreen: React.FC<VicePrincipalTimetableScreen
       class: overrideClass,
       room: overrideRoom,
       teacher: overrideTeacher,
+      subject: overrideSubject,
+      unitTopic: overrideTopic,
+      day: activeScheduleDay,
     });
-    if (overridePeriod === 'Period 2') setP2Assigned(true);
+    if (overridePeriod.includes('2')) setP2Assigned(true);
     setIsOverrideModalOpen(false);
   };
 
@@ -194,15 +223,15 @@ export const VicePrincipalTimetableScreen: React.FC<VicePrincipalTimetableScreen
         </div>
       </div>
 
-      {/* Date Carousel (Matching Image 4) */}
+      {/* Date Carousel (Synced with Student Today's Schedule Day) */}
       <div className="flex items-center space-x-2 overflow-x-auto pb-1 scrollbar-none">
         {days.map((d) => {
-          const isSelected = selectedDay === d.id;
+          const isSelected = activeScheduleDay === d.id;
           return (
             <button
               key={d.id}
-              onClick={() => setSelectedDay(d.id)}
-              className={`flex-1 min-w-[54px] p-2.5 rounded-2xl text-center transition ${
+              onClick={() => setActiveScheduleDay(d.id)}
+              className={`flex-1 min-w-[54px] p-2.5 rounded-2xl text-center transition cursor-pointer ${
                 isSelected
                   ? 'bg-teal text-white shadow-md font-bold'
                   : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
@@ -216,180 +245,107 @@ export const VicePrincipalTimetableScreen: React.FC<VicePrincipalTimetableScreen
         })}
       </div>
 
-      {/* Class Timetable Schedule List (Matching Image 4) */}
+      {/* Live Class Timetable Schedule List (Directly Synced with Student Today's Class Schedule) */}
       <div className="space-y-3">
         <div className="flex items-center justify-between text-xs font-bold text-slate-500">
           <div className="flex items-center space-x-2">
-            <span className="text-[#0E2C48] font-extrabold text-sm">Class Timetable</span>
-            <span className="text-[10px] bg-slate-200/70 text-slate-700 px-2 py-0.5 rounded-full">
-              6 Periods
+            <span className="text-[#0E2C48] font-extrabold text-sm">
+              Live Class Schedule ({selectedGrade} {selectedSec} • {activeScheduleDay})
+            </span>
+            <span className="text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full">
+              {liveSectionDaySlots.length} Periods • Synced to Student Panel
             </span>
           </div>
           <span className="text-[11px] text-slate-400">Bell Schedule: Normal (45m)</span>
         </div>
 
-        {/* P1: Mathematics */}
-        <div className="p-4 rounded-2xl border border-slate-200 bg-white shadow-2xs flex items-center justify-between">
-          <div className="space-y-1">
-            <div className="flex items-center space-x-2">
-              <span className="text-[10px] font-black px-2 py-0.5 rounded bg-sky-100 text-sky-800">
-                P1
-              </span>
-              <span className="text-xs font-semibold text-slate-500">08:30 – 09:15 AM</span>
-              <span className="text-xs font-bold text-slate-600 flex items-center space-x-1">
-                <span>Room 204</span>
-              </span>
-            </div>
-            <h4 className="font-extrabold text-sm text-[#0E2C48]">Mathematics</h4>
-            <div className="text-xs text-slate-500">
-              Mrs. Eleanor Oswald • Grade 10A
-            </div>
-          </div>
-          <button className="text-slate-400 hover:text-slate-600">
-            <MoreVertical className="w-4 h-4" />
-          </button>
-        </div>
-
-        {/* P2: Free Period (or Assigned) */}
-        <div className="p-4 rounded-2xl border border-slate-200 bg-slate-50/70 shadow-2xs flex items-center justify-between">
-          <div className="space-y-1">
-            <div className="flex items-center space-x-2">
-              <span className="text-[10px] font-black px-2 py-0.5 rounded bg-slate-200 text-slate-700">
-                P2
-              </span>
-              <span className="text-xs font-semibold text-slate-500">09:20 – 10:05 AM</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Moon className="w-4 h-4 text-slate-400" />
-              <h4 className="font-bold text-sm text-slate-700">
-                {p2Assigned ? 'English Literature (Assigned Sub)' : 'Free Period • No Class Scheduled'}
-              </h4>
-            </div>
-            {p2Assigned && (
-              <div className="text-xs text-teal font-semibold">
-                Ms. Taylor • Grade 10A (Room 205)
+        {liveSectionDaySlots.map((slot) => {
+          const isLive = slot.status === 'LIVE_NOW';
+          const isCompleted = slot.status === 'COMPLETED';
+          return (
+            <div
+              key={slot.id}
+              className={`p-4 rounded-2xl border shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition ${
+                isLive
+                  ? 'border-2 border-teal bg-teal/5'
+                  : isCompleted
+                  ? 'border-emerald-200 bg-emerald-50/30'
+                  : 'border-slate-200 bg-white'
+              }`}
+            >
+              <div className="space-y-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-[10px] font-black px-2 py-0.5 rounded bg-sky-100 text-sky-800">
+                    P{slot.period}
+                  </span>
+                  <span className="text-xs font-semibold text-slate-500">{slot.timeRange}</span>
+                  <span className="text-xs font-bold text-slate-600">{slot.room}</span>
+                  {isLive && (
+                    <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-teal text-white">
+                      ● LIVE NOW
+                    </span>
+                  )}
+                  {isCompleted && (
+                    <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                      ✓ Completed
+                    </span>
+                  )}
+                </div>
+                <h4 className="font-extrabold text-sm text-[#0E2C48]">{slot.subject}</h4>
+                {slot.unitTopic && (
+                  <p className="text-xs font-semibold text-teal">{slot.unitTopic}</p>
+                )}
+                <div className="text-xs text-slate-500">
+                  {slot.teacher} • Grade {slot.gradeSection}
+                </div>
               </div>
-            )}
-          </div>
-          <button
-            onClick={() => {
-              setIsOverrideModalOpen(true);
-              setOverridePeriod('Period 2');
-            }}
-            className="px-3.5 py-1.5 rounded-xl bg-sky-100 hover:bg-sky-200 text-sky-800 text-xs font-bold transition"
-          >
-            {p2Assigned ? 'Reassign' : 'Assign'}
-          </button>
-        </div>
 
-        {/* P3: Physics Lab */}
-        <div className="p-4 rounded-2xl border border-slate-200 bg-white shadow-2xs flex items-center justify-between">
-          <div className="space-y-1">
-            <div className="flex items-center space-x-2">
-              <span className="text-[10px] font-black px-2 py-0.5 rounded bg-sky-100 text-sky-800">
-                P3
-              </span>
-              <span className="text-xs font-semibold text-slate-500">10:15 – 11:00 AM</span>
-              <span className="text-xs font-bold text-slate-600">Lab 3B</span>
-            </div>
-            <h4 className="font-extrabold text-sm text-[#0E2C48]">Physics Lab</h4>
-            <div className="text-xs text-slate-500">
-              Ms. Rachel Higgins • Grade 11B
-            </div>
-          </div>
-          <button className="text-slate-400 hover:text-slate-600">
-            <MoreVertical className="w-4 h-4" />
-          </button>
-        </div>
+              <div className="flex flex-wrap items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setPeriodLiveStatus(slot.id, isLive ? 'UPCOMING' : 'LIVE_NOW')
+                  }
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+                    isLive
+                      ? 'bg-teal text-white'
+                      : 'bg-sky-50 hover:bg-sky-100 text-sky-800 border border-sky-200'
+                  }`}
+                >
+                  {isLive ? '● Live Now' : 'Set Live'}
+                </button>
 
-        {/* P4: Chemistry Practical (Conflict Alert Item) */}
-        <div
-          className={`p-4 rounded-2xl border transition shadow-2xs space-y-2 ${
-            p4ConflictResolved
-              ? 'border-emerald-200 bg-white'
-              : 'border-l-4 border-l-rose-500 border-rose-200 bg-rose-50/40'
-          }`}
-        >
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <span className="text-[10px] font-black px-2 py-0.5 rounded bg-rose-100 text-rose-800">
-                P4
-              </span>
-              <span className="text-xs font-semibold text-slate-500">11:05 – 11:50 AM</span>
-              <span className="text-xs font-bold text-slate-600">
-                {p4ConflictResolved ? 'Chemistry Lab 2 (Annex)' : 'Lab 3B'}
-              </span>
-            </div>
-            {!p4ConflictResolved && (
-              <span className="w-5 h-5 rounded-full bg-rose-600 text-white flex items-center justify-center font-bold text-xs">
-                !
-              </span>
-            )}
-          </div>
+                <button
+                  type="button"
+                  onClick={() => togglePeriodCompletion(slot.id, slot.teacher)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+                    isCompleted
+                      ? 'bg-emerald-600 text-white'
+                      : 'bg-slate-100 hover:bg-emerald-50 text-slate-700'
+                  }`}
+                >
+                  {isCompleted ? 'Done ✓' : 'Mark Done'}
+                </button>
 
-          <div>
-            <h4 className="font-extrabold text-sm text-[#0E2C48]">Chemistry Practical</h4>
-            <div className="text-xs text-slate-500">Dr. Sunita Verma • Grade 12A</div>
-          </div>
-
-          {!p4ConflictResolved ? (
-            <div className="p-2 rounded-xl bg-rose-100/70 border border-rose-200 text-[11px] font-bold text-rose-700 flex items-center justify-between">
-              <span>⚠ Room overlap with Physics Lab (Lab 3B)</span>
-              <button
-                onClick={handleResolveLabConflict}
-                className="text-xs font-black text-rose-900 underline hover:no-underline"
-              >
-                Relocate Now
-              </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOverridePeriod(`Period ${slot.period} (${slot.timeRange})`);
+                    setOverrideSubject(slot.subject);
+                    setOverrideTopic(slot.unitTopic || '');
+                    setOverrideClass(`Grade ${slot.gradeSection}`);
+                    setOverrideRoom(slot.room);
+                    setOverrideTeacher(slot.teacher);
+                    setIsOverrideModalOpen(true);
+                  }}
+                  className="px-3 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 text-xs font-bold transition cursor-pointer"
+                >
+                  Change / Override
+                </button>
+              </div>
             </div>
-          ) : (
-            <div className="text-[11px] font-bold text-emerald-700 flex items-center space-x-1">
-              <CheckCircle2 className="w-3.5 h-3.5" />
-              <span>Resolved: Moved to Chem Lab 2</span>
-            </div>
-          )}
-        </div>
-
-        {/* P5: English Literature */}
-        <div className="p-4 rounded-2xl border border-slate-200 bg-white shadow-2xs flex items-center justify-between">
-          <div className="space-y-1">
-            <div className="flex items-center space-x-2">
-              <span className="text-[10px] font-black px-2 py-0.5 rounded bg-purple-100 text-purple-800">
-                P5
-              </span>
-              <span className="text-xs font-semibold text-slate-500">12:30 – 01:15 PM</span>
-              <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-sky-100 text-sky-800">
-                Substitute
-              </span>
-              <span className="text-xs font-bold text-slate-600">Room 102</span>
-            </div>
-            <h4 className="font-extrabold text-sm text-[#0E2C48]">English Literature</h4>
-            <div className="text-xs text-slate-500">
-              Mr. Charles Davis • Grade 9B
-            </div>
-          </div>
-          <button className="text-slate-400 hover:text-slate-600">
-            <MoreVertical className="w-4 h-4" />
-          </button>
-        </div>
-
-        {/* P6: Computer Science */}
-        <div className="p-4 rounded-2xl border border-slate-200 bg-white shadow-2xs flex items-center justify-between">
-          <div className="space-y-1">
-            <div className="flex items-center space-x-2">
-              <span className="text-[10px] font-black px-2 py-0.5 rounded bg-sky-100 text-sky-800">
-                P6
-              </span>
-              <span className="text-xs font-semibold text-slate-500">01:20 – 02:05 PM</span>
-              <span className="text-xs font-bold text-slate-600">Lab 1</span>
-            </div>
-            <h4 className="font-extrabold text-sm text-[#0E2C48]">Computer Science</h4>
-            <div className="text-xs text-slate-500">Mr. Arthur Vance • Grade 10B</div>
-          </div>
-          <button className="text-slate-400 hover:text-slate-600">
-            <MoreVertical className="w-4 h-4" />
-          </button>
-        </div>
+          );
+        })}
       </div>
 
       {/* CASPA Copilot Timetable Optimization Card (Matching Image 4) */}
@@ -511,10 +467,37 @@ export const VicePrincipalTimetableScreen: React.FC<VicePrincipalTimetableScreen
                   onChange={(e) => setOverridePeriod(e.target.value)}
                   className="w-full text-xs font-semibold px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white"
                 >
+                  <option>Period 1 (08:30 - 09:15 AM)</option>
                   <option>Period 2 (09:20 - 10:05 AM)</option>
+                  <option>Period 3 (10:15 - 11:00 AM)</option>
                   <option>Period 4 (11:05 - 11:50 AM)</option>
-                  <option>Period 5 (12:30 - 01:15 PM)</option>
+                  <option>Period 5 (12:35 - 01:20 PM)</option>
+                  <option>Period 6 (01:25 - 02:10 PM)</option>
+                  <option>Period 7 (02:15 - 03:00 PM)</option>
                 </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-[#0E2C48] mb-1">Subject Name</label>
+                <input
+                  type="text"
+                  value={overrideSubject}
+                  onChange={(e) => setOverrideSubject(e.target.value)}
+                  placeholder="e.g., Advanced Physics (Thermodynamics)"
+                  className="w-full text-xs font-semibold px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-[#0E2C48] mb-1">Unit / Lecture Topic</label>
+                <input
+                  type="text"
+                  value={overrideTopic}
+                  onChange={(e) => setOverrideTopic(e.target.value)}
+                  placeholder="e.g., Chapter 4: Heat Engines & Entropy"
+                  className="w-full text-xs font-semibold px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white"
+                />
               </div>
 
               <div>

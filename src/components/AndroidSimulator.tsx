@@ -981,7 +981,7 @@ export const AndroidSimulator: React.FC = () => {
                         <div className="flex items-center justify-between">
                           <h2 className="text-sm font-extrabold text-navy">Grade 9B Attendance</h2>
                           <button
-                            onClick={markAllStudentsPresent}
+                            onClick={() => markAllStudentsPresent()}
                             className="text-[10px] bg-teal text-white font-bold px-2 py-0.5 rounded"
                           >
                             Mark All Present

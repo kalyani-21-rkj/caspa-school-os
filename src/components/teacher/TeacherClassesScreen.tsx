@@ -40,12 +40,15 @@ export const TeacherClassesScreen: React.FC<TeacherClassesScreenProps> = ({
     availableTimetableWeeks,
     activeTimetableWeek,
     setActiveTimetableWeek,
+    activeScheduleDay,
+    setActiveScheduleDay,
     togglePeriodCompletion,
     showToast,
   } = useApp();
 
   const [filterPeriod, setFilterPeriod] = useState<'today' | 'week' | 'all'>('today');
-  const [selectedDay, setSelectedDay] = useState<MasterTimetableSlot['day']>('Monday');
+  const selectedDay = activeScheduleDay;
+  const setSelectedDay = setActiveScheduleDay;
   const [searchQuery, setSearchQuery] = useState('');
 
   const teacherName = currentUser?.fullName || 'Mrs. Oswald';

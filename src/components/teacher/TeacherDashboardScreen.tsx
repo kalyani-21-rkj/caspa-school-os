@@ -27,6 +27,8 @@ export const TeacherDashboardScreen: React.FC<TeacherDashboardScreenProps> = ({ 
     staffPayrollRecords,
     masterTimetable,
     activeTimetableWeek,
+    activeScheduleDay,
+    setActiveScheduleDay,
     togglePeriodCompletion,
     absenceExcuses,
     reviewStudentAbsenceExcuse,
@@ -34,7 +36,8 @@ export const TeacherDashboardScreen: React.FC<TeacherDashboardScreenProps> = ({ 
   } = useApp();
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [aiDraftOutput, setAiDraftOutput] = useState<string | null>(null);
-  const [selectedDay, setSelectedDay] = useState<'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday' | 'Saturday'>('Monday');
+  const selectedDay = activeScheduleDay;
+  const setSelectedDay = setActiveScheduleDay;
 
   const teacherName = currentUser?.fullName || 'Mrs. Oswald';
   const myPublishedDaySlots = masterTimetable
