@@ -307,9 +307,10 @@ export const AdminStudentsScreen: React.FC = () => {
                           <Edit2 className="w-4 h-4" />
                         </button>
                         <button
+                          type="button"
                           onClick={() => archiveStudent(std.id)}
-                          className="p-1 text-slate-400 hover:text-red-500 transition"
-                          title="Mark Withdrawn"
+                          className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition cursor-pointer"
+                          title="Delete Student Permanently"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>

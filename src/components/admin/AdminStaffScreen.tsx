@@ -9,6 +9,7 @@ import {
   Award,
   Clock,
   Edit2,
+  Trash2,
   X,
   CheckCircle2,
 } from 'lucide-react';
@@ -16,7 +17,7 @@ import { useApp } from '../../context/AppContext';
 import { AdminStaffMember } from '../../types';
 
 export const AdminStaffScreen: React.FC = () => {
-  const { staffMembers, addStaffMember, updateStaffMember, showToast } = useApp();
+  const { staffMembers, addStaffMember, updateStaffMember, deleteStaffMember, showToast } = useApp();
 
   const [activeDept, setActiveDept] = useState<string>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
@@ -174,13 +175,24 @@ export const AdminStaffScreen: React.FC = () => {
                   </div>
                 </div>
 
-                <button
-                  onClick={() => setEditingStaff(stf)}
-                  className="p-1.5 text-slate-400 hover:text-teal rounded-lg hover:bg-slate-50 transition"
-                  title="Edit details"
-                >
-                  <Edit2 className="w-3.5 h-3.5" />
-                </button>
+                <div className="flex items-center space-x-1">
+                  <button
+                    type="button"
+                    onClick={() => setEditingStaff(stf)}
+                    className="p-1.5 text-slate-400 hover:text-teal rounded-lg hover:bg-slate-50 transition cursor-pointer"
+                    title="Edit Faculty / Staff Details"
+                  >
+                    <Edit2 className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => deleteStaffMember(stf.id)}
+                    className="p-1.5 text-slate-400 hover:text-red-600 rounded-lg hover:bg-red-50 transition cursor-pointer"
+                    title="Delete Faculty / Staff Permanently"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
               </div>
 
               <div className="p-2.5 bg-slate-50 rounded-xl space-y-1.5 text-[11px] text-slate-600">
@@ -415,20 +427,34 @@ export const AdminStaffScreen: React.FC = () => {
                 />
               </div>
 
-              <div className="flex items-center justify-end space-x-2 pt-3 border-t border-slate-100">
+              <div className="flex items-center justify-between pt-3 border-t border-slate-100">
                 <button
                   type="button"
-                  onClick={() => setEditingStaff(null)}
-                  className="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-100"
+                  onClick={() => {
+                    deleteStaffMember(editingStaff.id);
+                    setEditingStaff(null);
+                  }}
+                  className="px-3 py-1.5 rounded-lg text-xs font-bold text-red-600 bg-red-50 hover:bg-red-100 border border-red-200 flex items-center space-x-1.5 transition cursor-pointer"
                 >
-                  Cancel
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Delete Permanently</span>
                 </button>
-                <button
-                  type="submit"
-                  className="px-4 py-1.5 rounded-lg text-xs font-bold bg-teal text-white shadow-xs"
-                >
-                  Save Changes
-                </button>
+
+                <div className="flex items-center space-x-2">
+                  <button
+                    type="button"
+                    onClick={() => setEditingStaff(null)}
+                    className="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-100 cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-1.5 rounded-lg text-xs font-bold bg-teal text-white shadow-xs cursor-pointer"
+                  >
+                    Save Changes
+                  </button>
+                </div>
               </div>
             </form>
           </div>

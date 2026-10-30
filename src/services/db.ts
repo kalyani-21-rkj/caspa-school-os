@@ -3338,21 +3338,98 @@ class DatabaseStore {
   }
 
   updateStudent(id: string, updates: Partial<Student>) {
-    const std = this.students.find(s => s.id === id);
+    const std = this.students.find((s) => s.id === id);
     if (std) {
+      const oldName = std.fullName;
       Object.assign(std, updates);
-      this.logAudit('Arthur Clark', 'ADMIN', 'UPDATE_STUDENT', 'STUDENTS', id, `Updated student record for ${std.fullName}`);
+
+      // Sync updates to Teacher Roster as well
+      const teacherStd = this.teacherStudents.find(
+        (ts) => ts.id === id || ts.fullName.toLowerCase() === oldName.toLowerCase()
+      );
+      if (teacherStd) {
+        if (updates.fullName) {
+          teacherStd.fullName = updates.fullName;
+          teacherStd.avatarInitials = updates.fullName
+            .split(' ')
+            .map((n) => n[0])
+            .join('')
+            .slice(0, 2)
+            .toUpperCase();
+        }
+        if (updates.grade) teacherStd.grade = updates.grade;
+        if (updates.section) teacherStd.section = updates.section;
+        if (updates.parentName) teacherStd.parentName = updates.parentName;
+        if (updates.parentPhone) teacherStd.parentPhone = updates.parentPhone;
+      }
+
+      this.logAudit(
+        this.currentUser?.fullName || 'Arthur Clark',
+        this.currentUser?.roleType || 'ADMIN',
+        'UPDATE_STUDENT',
+        'STUDENTS',
+        id,
+        `Updated student record for ${std.fullName}`
+      );
     }
     return std;
   }
 
   archiveStudent(id: string) {
-    const std = this.students.find(s => s.id === id);
-    if (std) {
-      std.status = 'WITHDRAWN';
-      this.logAudit('Arthur Clark', 'ADMIN', 'ARCHIVE_STUDENT', 'STUDENTS', id, `Marked ${std.fullName} as Withdrawn`);
+    const index = this.students.findIndex((s) => s.id === id);
+    if (index === -1) return undefined;
+
+    const [removedStudent] = this.students.splice(index, 1);
+
+    // Also remove from Teacher Roster
+    this.teacherStudents = this.teacherStudents.filter(
+      (ts) =>
+        ts.id !== id &&
+        ts.fullName.toLowerCase() !== removedStudent.fullName.toLowerCase()
+    );
+
+    // Decrement section strength in classSections
+    const matchedSection = this.classSections.find(
+      (cs) =>
+        cs.section.toLowerCase() === removedStudent.section.toLowerCase() ||
+        `${cs.grade} ${cs.section}`.toLowerCase() ===
+          `${removedStudent.grade} ${removedStudent.section}`.toLowerCase()
+    );
+    if (matchedSection && matchedSection.studentCount > 0) {
+      matchedSection.studentCount -= 1;
     }
-    return std;
+
+    // Decrement studentCount in teacherClasses for that section
+    this.teacherClasses.forEach((tc) => {
+      if (
+        tc.section.toLowerCase() === removedStudent.section.toLowerCase() &&
+        tc.studentCount > 0
+      ) {
+        tc.studentCount -= 1;
+      }
+    });
+
+    // Remove associated fee invoices & attendance ledger entries
+    this.feeInvoices = this.feeInvoices.filter(
+      (inv) =>
+        inv.studentId !== id &&
+        inv.studentName.toLowerCase() !== removedStudent.fullName.toLowerCase()
+    );
+    this.studentAttendanceLedger = this.studentAttendanceLedger.filter(
+      (entry) =>
+        entry.studentId !== id &&
+        entry.studentName.toLowerCase() !== removedStudent.fullName.toLowerCase()
+    );
+
+    this.logAudit(
+      this.currentUser?.fullName || 'Arthur Clark',
+      this.currentUser?.roleType || 'ADMIN',
+      'DELETE_STUDENT',
+      'STUDENTS',
+      id,
+      `Permanently deleted student record for ${removedStudent.fullName} (${removedStudent.admissionNo})`
+    );
+    return removedStudent;
   }
 
   addStaffMember(data: {
@@ -3392,6 +3469,35 @@ class DatabaseStore {
       this.logAudit('Arthur Clark', 'ADMIN', 'UPDATE_STAFF', 'STAFF', id, `Updated faculty details for ${stf.fullName}`);
     }
     return stf;
+  }
+
+  deleteStaffMember(id: string) {
+    const index = this.staffMembers.findIndex((s) => s.id === id);
+    if (index === -1) return undefined;
+
+    const [removedStaff] = this.staffMembers.splice(index, 1);
+
+    // Also remove from staff payroll & principal staff leaves
+    this.staffPayrollRecords = this.staffPayrollRecords.filter(
+      (r) =>
+        r.staffId !== id &&
+        r.staffName.toLowerCase() !== removedStaff.fullName.toLowerCase()
+    );
+    this.principalStaffLeaves = this.principalStaffLeaves.filter(
+      (l) =>
+        l.staffId !== id &&
+        l.staffName.toLowerCase() !== removedStaff.fullName.toLowerCase()
+    );
+
+    this.logAudit(
+      this.currentUser?.fullName || 'Arthur Clark',
+      this.currentUser?.roleType || 'ADMIN',
+      'DELETE_STAFF',
+      'STAFF',
+      id,
+      `Permanently deleted faculty/staff member ${removedStaff.fullName} (${removedStaff.employeeId})`
+    );
+    return removedStaff;
   }
 
   recordFeePayment(invoiceId: string, amount: number, paymentMethod: string) {

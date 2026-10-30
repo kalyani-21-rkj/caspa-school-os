@@ -208,6 +208,7 @@ interface AppContextType {
     workloadPeriods: number;
   }) => void;
   updateStaffMember: (id: string, updates: Partial<AdminStaffMember>) => void;
+  deleteStaffMember: (id: string) => void;
   recordFeePayment: (invoiceId: string, amount: number, paymentMethod: string) => void;
   updateSafetyIncident: (id: string, status: SafetyIncident['status'], note?: string) => void;
   createIncident: (data: Partial<SafetyIncident>) => void;
@@ -733,17 +734,25 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const updated = db.updateStudent(id, updates);
     if (updated) {
       setStudents([...db.students]);
+      setTeacherStudents([...db.teacherStudents]);
       setAuditLogs([...db.auditLogs]);
       showToast(`Updated profile for ${updated.fullName}`);
     }
   };
 
   const archiveStudent = (id: string) => {
-    const archived = db.archiveStudent(id);
-    if (archived) {
+    const deleted = db.archiveStudent(id);
+    if (deleted) {
       setStudents([...db.students]);
+      setTeacherStudents([...db.teacherStudents]);
+      setTeacherClasses([...db.teacherClasses]);
+      setClassSections([...db.classSections]);
+      setFeeInvoices([...db.feeInvoices]);
+      setStudentAttendanceLedger([...db.studentAttendanceLedger]);
       setAuditLogs([...db.auditLogs]);
-      showToast(`Archived student ${archived.fullName}`);
+      showToast(
+        `Permanently deleted student ${deleted.fullName} (${deleted.admissionNo})`
+      );
     }
   };
 
@@ -769,6 +778,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setStaffMembers([...db.staffMembers]);
       setAuditLogs([...db.auditLogs]);
       showToast(`Updated staff details for ${updated.fullName}`);
+    }
+  };
+
+  const deleteStaffMember = (id: string) => {
+    const deleted = db.deleteStaffMember(id);
+    if (deleted) {
+      setStaffMembers([...db.staffMembers]);
+      setStaffPayrollRecords([...db.staffPayrollRecords]);
+      setPrincipalStaffLeaves([...db.principalStaffLeaves]);
+      setAuditLogs([...db.auditLogs]);
+      showToast(
+        `Permanently deleted ${deleted.fullName} (${deleted.employeeId}) from Faculty & Staff`
+      );
     }
   };
 
@@ -1593,6 +1615,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         archiveStudent,
         addStaffMember,
         updateStaffMember,
+        deleteStaffMember,
         recordFeePayment,
         updateSafetyIncident,
         createIncident,
