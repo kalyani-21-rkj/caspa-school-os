@@ -59,7 +59,7 @@ export const StudentDashboardScreen: React.FC<StudentDashboardScreenProps> = ({ 
   // Career & Competitive Exam Selection (PDF Section 13 & 21)
   const [selectedStream, setSelectedStream] = useState('STEM • Physics, Chemistry, Math & CS (JEE / SAT)');
 
-  // Compute live Attendance KPI for the active student
+  // Compute live Attendance KPI & Grade/Section for the active student
   const activeStudentName =
     currentUser?.roleType === 'STUDENT' &&
     currentUser?.fullName &&
@@ -71,6 +71,19 @@ export const StudentDashboardScreen: React.FC<StudentDashboardScreenProps> = ({ 
     teacherStudents.find(
       (s) => s.fullName.toLowerCase() === activeStudentName.toLowerCase()
     ) || teacherStudents[0];
+
+  // Extract section (e.g., "10A", "9B", "8A") from activeStudentObj or currentUser.designation
+  const activeSection = (
+    activeStudentObj?.section ||
+    currentUser?.designation?.match(/\(([0-9A-Za-z-]+)\)/)?.[1] ||
+    '9B'
+  ).replace('-', '');
+
+  const activeGradeLabel = activeStudentObj
+    ? activeStudentObj.grade.includes(activeStudentObj.section)
+      ? activeStudentObj.grade
+      : `${activeStudentObj.grade} (${activeStudentObj.section})`
+    : currentUser?.designation?.split('•')[0]?.trim() || 'Grade 9B';
 
   const studentLedgerEntries = studentAttendanceLedger.filter(
     (entry) =>
@@ -108,8 +121,18 @@ export const StudentDashboardScreen: React.FC<StudentDashboardScreenProps> = ({ 
       ? (((presentCount + lateCount * 0.5) / totalDaysCount) * 100).toFixed(1)
       : '100.0';
 
-  // Live Today's Schedule directly synced from Master Timetable (Scheduled by Admin / Vice Principal / Teacher)
-  const publishedDaySlots = masterTimetable
+  // Live Today's Schedule directly synced from Master Timetable for this student's Grade & Section (e.g., 9B, 10A, 8A, etc.)
+  const sectionSlots = masterTimetable
+    .filter(
+      (s) =>
+        s.weekLabel === activeTimetableWeek &&
+        s.gradeSection.toLowerCase() === activeSection.toLowerCase() &&
+        s.day === activeScheduleDay &&
+        s.isPublished
+    )
+    .sort((a, b) => a.period - b.period);
+
+  const fallback9BSlots = masterTimetable
     .filter(
       (s) =>
         s.weekLabel === activeTimetableWeek &&
@@ -118,6 +141,8 @@ export const StudentDashboardScreen: React.FC<StudentDashboardScreenProps> = ({ 
         s.isPublished
     )
     .sort((a, b) => a.period - b.period);
+
+  const publishedDaySlots = sectionSlots.length > 0 ? sectionSlots : fallback9BSlots;
 
   const liveDayPeriods =
     publishedDaySlots.length > 0
@@ -160,7 +185,7 @@ export const StudentDashboardScreen: React.FC<StudentDashboardScreenProps> = ({ 
       title: `${reportCategory} (${isAnonymous ? 'Anonymous Student Report' : currentUser?.fullName || 'Elena Vance'})`,
       category: 'Bullying' as any,
       severity: reportRisk === 'LOW' ? 'MEDIUM' : reportRisk,
-      studentMaskedId: isAnonymous ? 'Anonymous Reporter' : 'Student #9B-14 (Confidential)',
+      studentMaskedId: isAnonymous ? 'Anonymous Reporter' : `Student #${activeSection}-${activeStudentObj?.rollNo || 14} (Confidential)`,
       details: reportDescription.trim(),
     });
     createIncident({
@@ -194,7 +219,7 @@ export const StudentDashboardScreen: React.FC<StudentDashboardScreenProps> = ({ 
             </span>
             <AccessControlledBadge
               moduleName="Student Learning Workspace"
-              recordScope="Own Student Record (Grade 9B • Roll #14)"
+              recordScope={`Own Student Record (${activeGradeLabel} • Roll #${activeStudentObj?.rollNo || 14})`}
               sensitivityLevel="INTERNAL"
               maskedFields={['Other Students Marks', 'Staff HR Records', 'Confidential Safety Files']}
             />
@@ -204,7 +229,7 @@ export const StudentDashboardScreen: React.FC<StudentDashboardScreenProps> = ({ 
             <span>👋</span>
           </h1>
           <p className="text-xs md:text-sm text-slate-500 mt-0.5">
-            {activeStudentObj ? `${activeStudentObj.grade}${activeStudentObj.section}` : 'Grade 9B'} • Roll No. {activeStudentObj?.rollNo || 14} • Here&apos;s your student day at a glance.
+            {activeGradeLabel} • Roll No. {activeStudentObj?.rollNo || 14} • Here&apos;s your student day at a glance.
           </p>
         </div>
 

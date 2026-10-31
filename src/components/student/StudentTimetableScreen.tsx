@@ -14,6 +14,8 @@ import { downloadClassNotesPdf } from '../../utils/downloadHelper';
 export const StudentTimetableScreen: React.FC = () => {
   const {
     currentUser,
+    teacherStudents,
+    selectedStudentForAttendanceView,
     studentPeriods,
     masterTimetable,
     availableTimetableWeeks,
@@ -28,7 +30,35 @@ export const StudentTimetableScreen: React.FC = () => {
 
   const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
-  const publishedSlotsForDay = masterTimetable
+  const activeStudentName =
+    currentUser?.roleType === 'STUDENT' &&
+    currentUser?.fullName &&
+    currentUser.fullName !== 'Elena Vance'
+      ? currentUser.fullName
+      : selectedStudentForAttendanceView || currentUser?.fullName || 'Elena Vance';
+
+  const activeStudentObj =
+    teacherStudents.find(
+      (s) => s.fullName.toLowerCase() === activeStudentName.toLowerCase()
+    ) || teacherStudents[0];
+
+  const activeSection = (
+    activeStudentObj?.section ||
+    currentUser?.designation?.match(/\(([0-9A-Za-z-]+)\)/)?.[1] ||
+    '9B'
+  ).replace('-', '');
+
+  const sectionSlotsForDay = masterTimetable
+    .filter(
+      (s) =>
+        s.weekLabel === activeTimetableWeek &&
+        s.gradeSection.toLowerCase() === activeSection.toLowerCase() &&
+        s.day === selectedDay &&
+        s.isPublished
+    )
+    .sort((a, b) => a.period - b.period);
+
+  const fallback9BSlotsForDay = masterTimetable
     .filter(
       (s) =>
         s.weekLabel === activeTimetableWeek &&
@@ -37,6 +67,9 @@ export const StudentTimetableScreen: React.FC = () => {
         s.isPublished
     )
     .sort((a, b) => a.period - b.period);
+
+  const publishedSlotsForDay =
+    sectionSlotsForDay.length > 0 ? sectionSlotsForDay : fallback9BSlotsForDay;
 
   const periodsToDisplay =
     publishedSlotsForDay.length > 0
@@ -61,7 +94,7 @@ export const StudentTimetableScreen: React.FC = () => {
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 pb-2 border-b border-slate-200">
         <div>
           <div className="flex items-center space-x-2 text-xs text-slate-500 mb-1">
-            <span className="font-bold text-teal">Class Timetable</span>
+            <span className="font-bold text-teal">Class Timetable ({activeSection})</span>
             <span>·</span>
             <span className="bg-sky-50 text-sky-700 px-2 py-0.5 rounded font-semibold text-[11px]">
               {activeTimetableWeek}
@@ -71,7 +104,7 @@ export const StudentTimetableScreen: React.FC = () => {
             Academic Schedule &amp; Periods
           </h1>
           <p className="text-xs md:text-sm text-slate-500 mt-0.5">
-            {currentUser?.fullName || 'Elena Vance'} • {currentUser?.designation || 'Grade 9B'} •{' '}
+            {activeStudentObj?.fullName || currentUser?.fullName || 'Elena Vance'} • {currentUser?.designation || `Grade ${activeSection}`} •{' '}
             {periodsToDisplay.filter((p) => p.status === 'COMPLETED').length}/{periodsToDisplay.length} Lectures Completed on {selectedDay}
           </p>
         </div>

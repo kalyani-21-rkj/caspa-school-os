@@ -620,6 +620,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setSimulatorRole(res.user.roleType);
       setIsAuthenticated(true);
       setActiveTab('home');
+      if (res.user.roleType === 'STUDENT' && res.user.fullName) {
+        setSelectedStudentForAttendanceView(res.user.fullName);
+      }
       setAuditLogs([...db.auditLogs]);
       showToast(`Signed in as ${res.user.fullName} (${res.user.roleType.replace('_', ' ')} Module Authorized)`);
     } else {
@@ -817,12 +820,25 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setParentMessages([...db.parentMessages]);
     setFeeInvoices([...db.feeInvoices]);
     setAuditLogs([...db.auditLogs]);
+
+    // Ensure the student's section has a published weekly timetable ready
+    const hasSectionTimetable = masterTimetable.some(
+      (s) => s.gradeSection.toLowerCase() === data.section.toLowerCase()
+    );
+    if (!hasSectionTimetable) {
+      generateWeeklyTimetable({
+        weekLabel: activeTimetableWeek,
+        gradeSection: data.section,
+        autoPublish: true,
+      });
+    }
+
     const matchedSection = db.classSections.find(
       (cs) => cs.section.toLowerCase() === data.section.toLowerCase()
     );
     const teacherLabel = matchedSection?.classTeacher || 'Mrs. Oswald';
     showToast(
-      `Admitted ${newStudent.fullName} (${newStudent.admissionNo}) to ${newStudent.grade} (${newStudent.section}) • Synced to ${teacherLabel}`
+      `Admitted ${newStudent.fullName} (${newStudent.admissionNo}) to ${newStudent.grade} (${newStudent.section}) • Student Login: "${newStudent.fullName}" or "${newStudent.admissionNo}" • Synced to ${teacherLabel}`
     );
   };
 

@@ -3090,16 +3090,33 @@ class DatabaseStore {
         u.fullName.toLowerCase() === q
     );
 
+    // 1b. Check if login input matches any student in Admin Students or Teacher Roster (by Name, Admission No, or Email)
+    const matchedStudentRecord = this.students.find(
+      (s) =>
+        s.fullName.toLowerCase() === q ||
+        s.admissionNo.toLowerCase() === q ||
+        `${s.fullName.toLowerCase().replace(/\s+/g, '.')}@caspaschool.org` === q ||
+        s.fullName.toLowerCase().replace(/\s+/g, '.') === q
+    );
+    const matchedTeacherStudent = this.teacherStudents.find(
+      (ts) =>
+        ts.fullName.toLowerCase() === q ||
+        `${ts.fullName.toLowerCase().replace(/\s+/g, '.')}@caspaschool.org` === q ||
+        ts.fullName.toLowerCase().replace(/\s+/g, '.') === q
+    );
+
     // Determine target role
     let targetRole: RoleType = preferredRole || 'PRINCIPAL';
     if (!preferredRole) {
       if (exactAccount) {
         targetRole = exactAccount.roleType;
+      } else if (matchedStudentRecord || matchedTeacherStudent) {
+        targetRole = 'STUDENT';
       } else if (q.includes('vice') || q.includes('vp') || q.includes('jenkins') || q.includes('sarah')) {
         targetRole = 'VICE_PRINCIPAL';
       } else if (q.includes('admin') || q.includes('clark') || q.includes('operations')) {
         targetRole = 'ADMIN';
-      } else if (q.includes('student') || q.includes('elena') || q.includes('8890') || q.includes('vance') || q.includes('stu-')) {
+      } else if (q.includes('student') || q.includes('elena') || q.includes('8890') || q.includes('vance') || q.includes('stu-') || q.includes('caspa-')) {
         targetRole = 'STUDENT';
       } else if (q.includes('teacher') || q.includes('oswald') || q.includes('faculty')) {
         targetRole = 'TEACHER';
@@ -3114,6 +3131,25 @@ class DatabaseStore {
 
     if (exactAccount && (!preferredRole || exactAccount.roleType === preferredRole)) {
       matchedUser = exactAccount;
+    } else if (targetRole === 'STUDENT' && (matchedStudentRecord || matchedTeacherStudent)) {
+      const baseTemplate = USERS.STUDENT;
+      const stdName = matchedStudentRecord?.fullName || matchedTeacherStudent!.fullName;
+      const stdGrade = matchedStudentRecord?.grade || matchedTeacherStudent?.grade.split('(')[0].trim() || 'Grade 9';
+      const stdSection = matchedStudentRecord?.section || matchedTeacherStudent?.section || '9B';
+      const stdRoll = matchedStudentRecord?.rollNo || matchedTeacherStudent?.rollNo || 14;
+      const stdAdmissionNo = matchedStudentRecord?.admissionNo || `STU-2026-00${stdRoll}`;
+      const stdEmail = `${stdName.toLowerCase().replace(/\s+/g, '.')}@caspaschool.org`;
+
+      matchedUser = {
+        ...baseTemplate,
+        id: matchedStudentRecord?.id || matchedTeacherStudent?.id || `user-${Date.now()}`,
+        username: stdAdmissionNo,
+        fullName: stdName,
+        email: stdEmail,
+        roleType: 'STUDENT',
+        designation: `${stdGrade} (${stdSection}) • Roll #${stdRoll}`,
+      };
+      this.registeredUsers.unshift(matchedUser);
     } else if (raw && !defaultIdentifiers.has(q)) {
       // User signed in with their own custom username or email — personalize the module profile with their name!
       const baseTemplate = USERS[targetRole] || USERS.STUDENT;
@@ -3128,7 +3164,6 @@ class DatabaseStore {
         roleType: targetRole,
       };
       this.registeredUsers.unshift(matchedUser);
-      USERS[targetRole] = matchedUser;
     } else {
       matchedUser = USERS[targetRole] || USERS.PRINCIPAL;
     }
@@ -3736,13 +3771,27 @@ class DatabaseStore {
       dueDate: 'Oct 15, 2026',
       status: 'OVERDUE',
     });
+
+    // Provision Student Portal Login Account so the student can immediately sign in with their Name, Email, or Admission No
+    const studentEmail = `${newStudent.fullName.toLowerCase().replace(/\s+/g, '.')}@caspaschool.org`;
+    const studentAccount: UserProfile = {
+      ...USERS.STUDENT,
+      id: newStudent.id,
+      username: admissionNo,
+      fullName: newStudent.fullName,
+      email: studentEmail,
+      roleType: 'STUDENT',
+      designation: `${newStudent.grade} (${newStudent.section}) • Roll #${nextRollNo}`,
+    };
+    this.registeredUsers.unshift(studentAccount);
+
     this.logAudit(
       this.currentUser?.fullName || 'Arthur Clark',
       this.currentUser?.roleType || 'ADMIN',
       'ADMIT_STUDENT',
       'STUDENTS',
       newStudent.id,
-      `Admitted ${newStudent.fullName} to ${newStudent.grade} ${newStudent.section} (Synced to Teacher ${assignedTeacher})`
+      `Admitted ${newStudent.fullName} to ${newStudent.grade} ${newStudent.section} (Login: ${studentEmail} / ${admissionNo} • Synced to Teacher ${assignedTeacher})`
     );
     return newStudent;
   }

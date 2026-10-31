@@ -4,8 +4,6 @@ import {
   ChevronDown,
   Search,
   Sparkles,
-  UserCheck,
-  Shield,
   Bell,
   Building2,
   CheckCircle2,
@@ -15,7 +13,6 @@ import {
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { CaspaLogo } from './CaspaLogo';
-import { RoleType } from '../types';
 
 interface HeaderProps {
   onOpenCodeExport?: () => void;
@@ -130,10 +127,7 @@ const INITIAL_NOTIFICATIONS: NotificationItem[] = [
 export const Header: React.FC<HeaderProps> = ({ onOpenCaspa }) => {
   const {
     currentUser,
-    authenticatedUser,
-    canAccessAllModules,
     currentRole,
-    setRole,
     setActiveTab,
     showToast,
     logout,
@@ -141,7 +135,6 @@ export const Header: React.FC<HeaderProps> = ({ onOpenCaspa }) => {
 
   const [searchVal, setSearchVal] = useState('');
   const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const [isRoleDropdownOpen, setIsRoleDropdownOpen] = useState(false);
   const [isCampusDropdownOpen, setIsCampusDropdownOpen] = useState(false);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   const [selectedCampus, setSelectedCampus] = useState('Main Campus (K-12) • AY 2026-27');
@@ -154,24 +147,6 @@ export const Header: React.FC<HeaderProps> = ({ onOpenCaspa }) => {
     { id: 'c-ib', name: 'South International IB & Cambridge', students: '490 Scholars', code: 'BLR-INTL' },
     { id: 'c-all', name: 'All Campuses Consolidated (Multi-School)', students: '2,450 Scholars', code: 'ORG-ALL' },
   ];
-
-  const roleOptions: { role: RoleType; label: string; desc: string; badge: string }[] = [
-    { role: 'ADMIN', label: 'Arthur Clark', desc: 'School Admin & Operations Director', badge: 'Admin Console' },
-    { role: 'PRINCIPAL', label: 'Dr. Mehta', desc: 'Principal & Executive Head', badge: 'Principal Console' },
-    { role: 'VICE_PRINCIPAL', label: 'Dr. Sarah Jenkins', desc: 'Vice Principal & Academic Head', badge: 'VP Module' },
-    { role: 'TEACHER', label: 'Mrs. Oswald', desc: 'Dept of Mathematics', badge: 'Teacher Portal' },
-    { role: 'STUDENT', label: 'Elena Vance', desc: 'Grade 9B • Roll #14', badge: 'Student Portal' },
-    { role: 'PARENT', label: 'Mrs. Anita Sharma', desc: 'Parent of Aarav (10-B) & Ananya (7-A)', badge: 'Parent Portal' },
-  ];
-
-  const moduleBadgeLabels: Record<string, string> = {
-    ADMIN: 'Admin Master Console',
-    PRINCIPAL: 'Principal Module',
-    VICE_PRINCIPAL: 'Vice Principal Module',
-    TEACHER: 'Teacher Module',
-    STUDENT: 'Student Module',
-    PARENT: 'Parent Module',
-  };
 
   const quickSearchItems = [
     { title: 'Admissions CRM & Lead Pipeline (Screen #27-29)', category: 'Operations ERP', tab: 'erp-hub' },
@@ -238,7 +213,6 @@ export const Header: React.FC<HeaderProps> = ({ onOpenCaspa }) => {
             onClick={() => {
               setIsCampusDropdownOpen(!isCampusDropdownOpen);
               setIsNotifOpen(false);
-              setIsRoleDropdownOpen(false);
             }}
             className="flex items-center space-x-2 px-3 py-1.5 rounded-xl bg-[#092238] hover:bg-[#13385c] border border-[#16426a] text-xs transition cursor-pointer"
           >
@@ -378,7 +352,6 @@ export const Header: React.FC<HeaderProps> = ({ onOpenCaspa }) => {
             type="button"
             onClick={() => {
               setIsNotifOpen(!isNotifOpen);
-              setIsRoleDropdownOpen(false);
               setIsCampusDropdownOpen(false);
             }}
             className="relative p-2 rounded-xl bg-[#092238] hover:bg-[#13385c] border border-[#16426a] text-slate-200 transition cursor-pointer"
@@ -490,77 +463,6 @@ export const Header: React.FC<HeaderProps> = ({ onOpenCaspa }) => {
             </div>
           )}
         </div>
-
-        {/* Module Access Indicator: Admin sees All-Module Switcher; other roles see locked module authorization */}
-        {canAccessAllModules ? (
-          <div className="relative">
-            <button
-              onClick={() => {
-                setIsRoleDropdownOpen(!isRoleDropdownOpen);
-                setIsNotifOpen(false);
-                setIsCampusDropdownOpen(false);
-              }}
-              className="flex items-center space-x-2 px-3 py-1.5 rounded-xl bg-[#092238] hover:bg-[#13385c] border border-cyan-500/40 text-xs font-semibold transition"
-            >
-              <Shield className="w-3.5 h-3.5 text-cyan-300" />
-              <span className="hidden sm:inline">
-                Workspace: <strong className="text-cyan-200">{moduleBadgeLabels[currentRole] || currentRole}</strong>
-              </span>
-              <ChevronDown className="w-3 h-3 text-slate-400" />
-            </button>
-
-            {isRoleDropdownOpen && (
-              <div className="absolute right-0 mt-2 w-72 bg-[#092238] border border-[#16426a] rounded-2xl shadow-2xl p-2 z-50 text-xs animate-in fade-in slide-in-from-top-2 duration-150">
-                <div className="px-3 py-1.5 border-b border-[#16426a] mb-1">
-                  <span className="text-[10px] uppercase font-bold text-cyan-300 block tracking-wider">
-                    Role / Workspace Selector (Screen #3)
-                  </span>
-                  <span className="text-[10px] text-slate-400">
-                    Logged in as {authenticatedUser?.fullName} (Super Admin Authorization)
-                  </span>
-                </div>
-                <div className="space-y-1">
-                  {roleOptions.map((opt) => (
-                    <button
-                      key={opt.role}
-                      onClick={() => {
-                        setRole(opt.role);
-                        setIsRoleDropdownOpen(false);
-                      }}
-                      className={`w-full p-2.5 rounded-xl flex items-center justify-between text-left transition ${
-                        currentRole === opt.role
-                          ? 'bg-[#176B87] text-white shadow-xs font-bold'
-                          : 'text-slate-200 hover:bg-white/10'
-                      }`}
-                    >
-                      <div>
-                        <div className="font-bold">{opt.badge}</div>
-                        <div className="text-[10px] text-slate-300 opacity-80">{opt.label} • {opt.desc}</div>
-                      </div>
-                      <span
-                        className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
-                          currentRole === opt.role ? 'bg-white/20 text-white' : 'bg-white/10 text-slate-300'
-                        }`}
-                      >
-                        {opt.role}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        ) : (
-          <div
-            className="flex items-center space-x-2 px-3 py-1.5 rounded-xl bg-[#092238] border border-[#16426a] text-xs font-semibold"
-            title="Your session is strictly authorized for this module only. Sign out to switch accounts."
-          >
-            <UserCheck className="w-3.5 h-3.5 text-emerald-400" />
-            <span className="hidden sm:inline text-slate-300">
-              Authorized: <strong className="text-emerald-300">{moduleBadgeLabels[currentRole] || currentRole}</strong>
-            </span>
-          </div>
-        )}
 
         {/* Ask CASPA AI (Strictly CASPA Purple #5B3FA3 per Section 17) */}
         <button
