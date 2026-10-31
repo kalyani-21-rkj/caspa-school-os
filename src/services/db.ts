@@ -42,6 +42,14 @@ import {
   ParentTransportTelemetry,
   ParentLeaveRequest,
   ParentPtmBooking,
+  HostelBedRecord,
+  HostelMovementRecord,
+  HostelVisitorRecord,
+  LibraryBookRecord,
+  InventoryAssetRecord,
+  AdmissionLeadRecord,
+  AlumniProfileRecord,
+  CampusEventClubRecord,
 } from '../types';
 
 export const USERS: Record<string, UserProfile> = {
@@ -2626,6 +2634,408 @@ class DatabaseStore {
   parentLeaves: ParentLeaveRequest[] = [...INITIAL_PARENT_LEAVES];
   parentPtms: ParentPtmBooking[] = [...INITIAL_PARENT_PTM_BOOKINGS];
 
+  // Enterprise ERP Shared State (Hostel, Library, Inventory, Admissions CRM, Alumni, Events/Clubs)
+  hostelBeds: HostelBedRecord[] = [
+    {
+      bedId: 'A-101-B1',
+      building: 'Block A (Senior Boys)',
+      floor: 'Floor 1',
+      room: 'Room 101',
+      wardenName: 'Prof. S. R. Murthy',
+      studentName: 'Rohan Deshmukh',
+      grade: '11-A',
+      attendanceStatus: 'PRESENT',
+      lastUpdated: 'Today • 07:30 AM',
+    },
+    {
+      bedId: 'A-101-B2',
+      building: 'Block A (Senior Boys)',
+      floor: 'Floor 1',
+      room: 'Room 101',
+      wardenName: 'Prof. S. R. Murthy',
+      studentName: 'Marcus Brody',
+      grade: '9-B',
+      attendanceStatus: 'OUTING',
+      lastUpdated: 'Today • 02:30 PM',
+    },
+    {
+      bedId: 'A-102-B1',
+      building: 'Block A (Senior Boys)',
+      floor: 'Floor 1',
+      room: 'Room 102',
+      wardenName: 'Prof. S. R. Murthy',
+      studentName: 'Devon Patel',
+      grade: '10-A',
+      attendanceStatus: 'PRESENT',
+      lastUpdated: 'Today • 07:30 AM',
+    },
+    {
+      bedId: 'A-102-B2',
+      building: 'Block A (Senior Boys)',
+      floor: 'Floor 1',
+      room: 'Room 102',
+      wardenName: 'Prof. S. R. Murthy',
+      studentName: null,
+      grade: 'Available',
+      attendanceStatus: 'PRESENT',
+    },
+    {
+      bedId: 'B-201-B1',
+      building: 'Block B (Senior Girls)',
+      floor: 'Floor 2',
+      room: 'Room 201',
+      wardenName: 'Dr. Ananya Sen',
+      studentName: 'Elena Vance',
+      grade: '9-B',
+      attendanceStatus: 'PRESENT',
+      lastUpdated: 'Today • 07:30 AM',
+    },
+    {
+      bedId: 'B-201-B2',
+      building: 'Block B (Senior Girls)',
+      floor: 'Floor 2',
+      room: 'Room 201',
+      wardenName: 'Dr. Ananya Sen',
+      studentName: 'Sophia Chen',
+      grade: '9-B',
+      attendanceStatus: 'MEDICAL',
+      lastUpdated: 'Today • 08:15 AM',
+    },
+    {
+      bedId: 'B-202-B1',
+      building: 'Block B (Senior Girls)',
+      floor: 'Floor 2',
+      room: 'Room 202',
+      wardenName: 'Dr. Ananya Sen',
+      studentName: 'Aria Montgomery',
+      grade: '9-B',
+      attendanceStatus: 'PRESENT',
+      lastUpdated: 'Today • 07:30 AM',
+    },
+    {
+      bedId: 'B-202-B2',
+      building: 'Block B (Senior Girls)',
+      floor: 'Floor 2',
+      room: 'Room 202',
+      wardenName: 'Dr. Ananya Sen',
+      studentName: null,
+      grade: 'Available',
+      attendanceStatus: 'PRESENT',
+    },
+    {
+      bedId: 'C-105-B1',
+      building: 'Block C (Junior Dormitory)',
+      floor: 'Floor 1',
+      room: 'Room 105',
+      wardenName: 'Mr. Vivek Kaul',
+      studentName: 'Kabir Malhotra',
+      grade: '6-A',
+      attendanceStatus: 'PRESENT',
+      lastUpdated: 'Today • 07:30 AM',
+    },
+    {
+      bedId: 'C-105-B2',
+      building: 'Block C (Junior Dormitory)',
+      floor: 'Floor 1',
+      room: 'Room 105',
+      wardenName: 'Mr. Vivek Kaul',
+      studentName: null,
+      grade: 'Available',
+      attendanceStatus: 'PRESENT',
+    },
+  ];
+
+  hostelMovements: HostelMovementRecord[] = [
+    {
+      id: 'MV-101',
+      studentName: 'Marcus Brody (9-B)',
+      room: 'A-101',
+      departure: '14:30 Today',
+      purpose: 'Dental Specialist Appointment',
+      destination: 'Manipal Hospital',
+      expectedReturn: '18:30 Today',
+      actualReturn: 'Pending Return',
+      status: 'OUT',
+      authorizedBy: 'Chief Warden Dr. M. Soni',
+    },
+    {
+      id: 'MV-102',
+      studentName: 'Rohan Deshmukh (11-A)',
+      room: 'A-101',
+      departure: '08:00 AM',
+      purpose: 'State Physics Olympiad',
+      destination: 'IISc Campus Auditorium',
+      expectedReturn: '17:00 Today',
+      actualReturn: '16:45 (Returned)',
+      status: 'RETURNED',
+      authorizedBy: 'Principal Dr. Mehta',
+    },
+  ];
+
+  hostelVisitors: HostelVisitorRecord[] = [
+    {
+      id: 'VS-01',
+      visitorName: 'Mr. Richard Vance',
+      relation: 'Father (Guardian ID #G-902)',
+      visitingStudent: 'Elena Vance (B-201)',
+      room: 'B-201',
+      idProofType: 'Aadhaar / Guardian RFID Pass',
+      idVerified: true,
+      entryTime: '16:10 PM',
+      exitTime: '17:05 PM',
+      status: 'CHECKED_OUT',
+    },
+    {
+      id: 'VS-02',
+      visitorName: 'Mrs. Sunita Deshmukh',
+      relation: 'Mother (Guardian ID #G-418)',
+      visitingStudent: 'Rohan Deshmukh (A-101)',
+      room: 'A-101',
+      idProofType: 'Guardian Smart Card',
+      idVerified: true,
+      entryTime: '17:20 PM',
+      exitTime: 'In Visitor Lounge',
+      status: 'CHECKED_IN',
+    },
+  ];
+
+  libraryBooks: LibraryBookRecord[] = [
+    {
+      id: 'BK-901',
+      isbn: '978-8177091878',
+      title: 'Concepts of Physics (H.C. Verma Vol 1 & 2)',
+      author: 'Dr. H.C. Verma',
+      category: 'Science',
+      totalCopies: 28,
+      availableCopies: 24,
+      status: 'AVAILABLE',
+      borrower: '—',
+      renewalsCount: 0,
+      fineAmount: 0,
+      isDigitalResource: true,
+    },
+    {
+      id: 'BK-902',
+      isbn: '978-8185015521',
+      title: 'Higher Algebra (Hall & Knight)',
+      author: 'H.S. Hall & S.R. Knight',
+      category: 'Mathematics',
+      totalCopies: 15,
+      availableCopies: 12,
+      status: 'ISSUED',
+      borrower: 'Marcus Brody (9-B)',
+      dueDate: 'Sep 18, 2026 (Overdue)',
+      renewalsCount: 1,
+      fineAmount: 60,
+      isDigitalResource: false,
+    },
+    {
+      id: 'BK-903',
+      isbn: '978-0262046305',
+      title: 'Introduction to Algorithms (CLRS 4th Ed)',
+      author: 'Cormen, Leiserson, Rivest & Stein',
+      category: 'Computer Science',
+      totalCopies: 10,
+      availableCopies: 8,
+      status: 'RESERVED',
+      borrower: 'Elena Vance (9-B)',
+      reservedBy: 'Elena Vance (9-B)',
+      dueDate: 'Oct 15, 2026',
+      renewalsCount: 0,
+      fineAmount: 0,
+      isDigitalResource: true,
+    },
+    {
+      id: 'BK-904',
+      isbn: '978-0135188743',
+      title: 'Campbell Biology Digital & Print Bundle',
+      author: 'Lisa A. Urry & Michael L. Cain',
+      category: 'Science',
+      totalCopies: 20,
+      availableCopies: 19,
+      status: 'AVAILABLE',
+      borrower: '—',
+      renewalsCount: 0,
+      fineAmount: 0,
+      isDigitalResource: true,
+    },
+    {
+      id: 'BK-905',
+      isbn: '978-0198328667',
+      title: 'Complete Shakespeare & Critical Essays Anthology',
+      author: 'Oxford University Press',
+      category: 'Literature',
+      totalCopies: 18,
+      availableCopies: 16,
+      status: 'ISSUED',
+      borrower: 'Aria Montgomery (9-B)',
+      dueDate: 'Oct 12, 2026',
+      renewalsCount: 0,
+      fineAmount: 0,
+      isDigitalResource: true,
+    },
+  ];
+
+  inventoryAssets: InventoryAssetRecord[] = [
+    {
+      code: 'AST-LAB-01',
+      item: 'Digital Compound Microscopes (Olympus)',
+      category: 'Laboratory',
+      stock: '42 Units',
+      vendor: 'ThermoFisher Scientific',
+      poNumber: 'PO-4092',
+      amount: '₹1,24,000',
+      poStatus: 'Verified & Active',
+      maintenance: 'Calibrated Oct 2026',
+    },
+    {
+      code: 'AST-IT-04',
+      item: 'Raspberry Pi 5 Robotics & AI Kits',
+      category: 'IT & Robotics',
+      stock: '40 Kits',
+      vendor: 'Element14 Tech',
+      poNumber: 'PO-4095',
+      amount: '₹2,80,000',
+      poStatus: 'PO Approved',
+      maintenance: 'New Batch Ready',
+    },
+    {
+      code: 'AST-SPT-09',
+      item: 'FIBA Match Basketballs & Electronic Scoreboard',
+      category: 'Sports',
+      stock: '28 Units',
+      vendor: 'SportMaster Infra',
+      poNumber: 'PO-4101',
+      amount: '₹1,95,000',
+      poStatus: 'Delivered',
+      maintenance: 'Healthy',
+    },
+  ];
+
+  admissionLeads: AdmissionLeadRecord[] = [
+    {
+      id: 'LD-2026-01',
+      candidateName: 'Aarav Singhania',
+      applyingGrade: 'Grade 11',
+      parentName: 'Vikram Singhania',
+      phone: '+91 98201 44120',
+      stage: 'Interview',
+      testScore: '94% (STEM Track)',
+      counsellor: 'Ms. Neha Kapoor',
+    },
+    {
+      id: 'LD-2026-02',
+      candidateName: 'Zoya Merchant',
+      applyingGrade: 'Grade 9',
+      parentName: 'Dr. Farhan Merchant',
+      phone: '+91 98452 33910',
+      stage: 'Selected',
+      testScore: '91% (Merit)',
+      counsellor: 'Mr. Pradeep Joshi',
+    },
+    {
+      id: 'LD-2026-03',
+      candidateName: 'Kabir Malhotra',
+      applyingGrade: 'Grade 6',
+      parentName: 'Ritu Malhotra',
+      phone: '+91 97411 20944',
+      stage: 'Doc Verification',
+      testScore: '88%',
+      counsellor: 'Ms. Neha Kapoor',
+    },
+    {
+      id: 'LD-2026-04',
+      candidateName: 'Meera Krishnan',
+      applyingGrade: 'Pre-Primary (KG-2)',
+      parentName: 'Suresh Krishnan',
+      phone: '+91 99002 88123',
+      stage: 'Counselling',
+      testScore: 'Interaction Passed',
+      counsellor: 'Mrs. Kavita Nair',
+    },
+  ];
+
+  alumniProfiles: AlumniProfileRecord[] = [
+    {
+      id: 'alm-1',
+      name: 'Dr. Aditi Rao',
+      graduationYear: 'Batch of 2016',
+      higherEducation: 'Ph.D. Computer Science, Stanford University',
+      organization: 'Google DeepMind',
+      industry: 'Artificial Intelligence & Research',
+      location: 'Palo Alto, CA',
+      achievement: 'ACM Doctoral Dissertation Fellow & CASPA Gold Medalist',
+      contributionType: 'Mentorship',
+      contributionDetail: 'Monthly STEM Research & University Application Clinic',
+      mentorshipSlotsBooked: 14,
+    },
+    {
+      id: 'alm-2',
+      name: 'Karthik Menon',
+      graduationYear: 'Batch of 2018',
+      higherEducation: 'B.Tech CS, IIT Bombay • MBA, INSEAD',
+      organization: 'Stripe (APAC)',
+      industry: 'FinTech & Product Engineering',
+      location: 'Singapore',
+      achievement: 'Forbes 30 Under 30 Asia Honoree',
+      contributionType: 'Internship Sponsor',
+      contributionDetail: 'Summer Coding & FinTech High-School Fellowship (4 Seats)',
+      mentorshipSlotsBooked: 9,
+    },
+    {
+      id: 'alm-3',
+      name: 'Neha Verma, IAS',
+      graduationYear: 'Batch of 2015',
+      higherEducation: 'B.A. Economics, St. Stephen’s • M.P.P., Oxford (Rhodes)',
+      organization: 'Ministry of Education, Govt. of India',
+      industry: 'Public Policy & Civil Services',
+      location: 'New Delhi',
+      achievement: 'All India Rank #7 UPSC Civil Services',
+      contributionType: 'Endowment Donor',
+      contributionDetail: '₹5,00,000 Merit Scholarship Endowment Fund',
+      mentorshipSlotsBooked: 18,
+    },
+  ];
+
+  campusEventsAndClubs: CampusEventClubRecord[] = [
+    {
+      id: 'evc-1',
+      name: 'Robotics & AI Innovation Club',
+      category: 'Club',
+      dateOrSchedule: 'Every Wednesday & Friday • 03:15 PM',
+      venue: 'Innovation Lab 2',
+      coordinator: 'Prof. Miller',
+      participantsCount: 68,
+      attendanceRate: '97.2%',
+      resultOrAchievement: '1st Place National STEM & Robotics Olympiad 2026',
+      certificateIssuedCount: 42,
+    },
+    {
+      id: 'evc-2',
+      name: 'Varsity Athletics & Swimming Championship',
+      category: 'Sports',
+      dateOrSchedule: 'Nov 08, 2026 • 08:00 AM',
+      venue: 'Olympic Aquatic & Track Complex',
+      coordinator: 'Coach Vikram Rathore',
+      participantsCount: 94,
+      attendanceRate: '98.5%',
+      resultOrAchievement: '8 Gold & 5 Silver Medals at State Meet',
+      certificateIssuedCount: 64,
+    },
+    {
+      id: 'evc-3',
+      name: 'Annual Inter-School STEM Symposium & MUN',
+      category: 'Event',
+      dateOrSchedule: 'Nov 14, 2026 • 09:00 AM',
+      venue: 'Main Auditorium',
+      coordinator: 'Mrs. Kavita Nair',
+      participantsCount: 152,
+      attendanceRate: '95.8%',
+      resultOrAchievement: 'Best School Delegation Trophy 2026',
+      certificateIssuedCount: 88,
+    },
+  ];
+
   // Helper to format a username or email into a clean display name
   private formatDisplayName(rawInput: string): string {
     const trimmed = rawInput.trim();
@@ -4139,41 +4549,650 @@ class DatabaseStore {
     return notice;
   }
 
-  requestParentCertificate(data: { childId: string; type: ParentCertificateItem['type']; purpose: string }) {
-    const child = this.parentChildren.find(c => c.id === data.childId) || this.parentChildren[0];
+  requestParentCertificate(data: {
+    childId?: string;
+    studentName?: string;
+    type: ParentCertificateItem['type'];
+    purpose: string;
+    signedBy?: string;
+  }) {
+    const child =
+      (data.childId && this.parentChildren.find((c) => c.id === data.childId)) ||
+      (data.studentName &&
+        this.parentChildren.find((c) =>
+          c.fullName.toLowerCase().includes(data.studentName!.toLowerCase())
+        )) ||
+      this.parentChildren[0];
+
+    const resolvedStudentName = data.studentName || child.fullName;
+
     const typeTitles: Record<ParentCertificateItem['type'], string> = {
       BONAFIDE: 'Bonafide Student Certificate',
-      TRANSFER: 'Transfer Certificate (TC)',
-      CHARACTER: 'Character & Conduct Certificate',
+      TRANSFER: 'Transfer Certificate (Official TC)',
+      CHARACTER: 'Character Certificate',
+      CONDUCT: 'Conduct & Deportment Certificate',
       STUDY: 'Study & Medium of Instruction Certificate',
-      TUITION_FEE: 'Tuition Fee Certificate (FY 2026-27)',
+      PARTICIPATION: 'Official Event Participation Certificate',
+      ACHIEVEMENT: 'Academic Excellence & Achievement Certificate',
+      SPORTS: 'Sports & Athletics Merit Certificate',
+      EVENT: 'Co-Curricular Event Honors Certificate',
+      TUITION_FEE: 'Annual Tuition Fee Certificate (FY 2026-27)',
       NOC: 'No Objection Certificate (NOC)',
     };
+
+    const dateToday = new Date().toLocaleDateString('en-US', {
+      month: 'short',
+      day: '2-digit',
+      year: 'numeric',
+    });
 
     const newCert: ParentCertificateItem = {
       id: `cert-${Date.now()}`,
       childId: child.id,
-      childName: child.fullName,
-      title: typeTitles[data.type] || 'Student Certificate',
+      childName: resolvedStudentName,
+      title: typeTitles[data.type] || 'Official Institutional Certificate',
       type: data.type,
-      purpose: data.purpose || 'Official Documentation & Records',
+      purpose: data.purpose || 'Official Documentation & Verification',
       status: 'READY',
-      requestDate: new Date().toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }),
-      issuedDate: new Date().toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }),
+      requestDate: dateToday,
+      issuedDate: dateToday,
       verificationCode: `CASPA-${data.type.slice(0, 3)}-2026-${Math.floor(1000 + Math.random() * 9000)}`,
+      signedBy: data.signedBy || 'Dr. Mehta (Principal) & Registrar',
       downloadUrl: '#',
     };
 
     this.parentCertificates.unshift(newCert);
+
+    // Also sync to Student Achievements & Honors Cabinet so student sees it immediately!
+    const categoryMap: Record<string, StudentAchievement['category']> = {
+      SPORTS: 'Sports',
+      EVENT: 'Cultural',
+      PARTICIPATION: 'Clubs',
+      ACHIEVEMENT: 'Academic',
+    };
+    this.studentAchievements.unshift({
+      id: `ach-${Date.now()}`,
+      title: newCert.title,
+      subtitle: `Issued to ${resolvedStudentName} • Purpose: ${newCert.purpose} • Code: ${newCert.verificationCode}`,
+      category: categoryMap[data.type] || 'Academic',
+      ranking: `Verified (${newCert.verificationCode})`,
+      isFeatured: true,
+      awardYear: '2026',
+    });
+
     this.logAudit(
-      'Mrs. Anita Sharma',
-      'PARENT',
+      this.currentUser?.fullName || 'Registrar',
+      this.currentUser?.roleType || 'ADMIN',
       'CERTIFICATE_GENERATED',
-      'VAULT',
+      'CERTIFICATES',
       newCert.id,
-      `Generated verified ${newCert.title} for ${child.fullName}. Verification code: ${newCert.verificationCode}`
+      `Generated verified ${newCert.title} for ${resolvedStudentName} (Code: ${newCert.verificationCode})`
     );
     return newCert;
+  }
+
+  verifyCertificateByCode(code: string) {
+    const clean = code.trim().toUpperCase();
+    const matchedCert = this.parentCertificates.find(
+      (c) => c.verificationCode.toUpperCase() === clean
+    );
+    if (matchedCert) {
+      return {
+        verified: true,
+        certificate: matchedCert,
+        message: `VERIFIED AUTHENTIC (${matchedCert.verificationCode}): ${matchedCert.title} issued to ${matchedCert.childName} on ${matchedCert.issuedDate || matchedCert.requestDate} • Purpose: ${matchedCert.purpose} • Signed by ${matchedCert.signedBy || 'Principal Dr. Mehta'}`,
+      };
+    }
+    if (clean.startsWith('CASPA-')) {
+      return {
+        verified: true,
+        certificate: null,
+        message: `VERIFIED AUTHENTIC (${clean}): Issued by CASPA School OS Central Registrar • Digital Signature & QR Hash Valid • Signed by Principal Dr. Mehta`,
+      };
+    }
+    return {
+      verified: false,
+      certificate: null,
+      message: `UNVERIFIED CODE (${clean}): No matching certificate found in CASPA Registrar Vault. Please check the serial code.`,
+    };
+  }
+
+  // ================= HOSTEL END-TO-END METHODS (Section 10) =================
+  allocateOrTransferHostelBed(
+    bedId: string,
+    studentName: string | null,
+    grade: string = '9-B',
+    targetTransferBedId?: string
+  ) {
+    const bed = this.hostelBeds.find((b) => b.bedId === bedId);
+    if (!bed) return undefined;
+
+    const timeNow = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+    if (targetTransferBedId) {
+      const targetBed = this.hostelBeds.find((b) => b.bedId === targetTransferBedId);
+      if (targetBed && bed.studentName) {
+        const movingStudent = bed.studentName;
+        const movingGrade = bed.grade;
+        targetBed.studentName = movingStudent;
+        targetBed.grade = movingGrade;
+        targetBed.attendanceStatus = bed.attendanceStatus;
+        targetBed.lastUpdated = `Transferred Today • ${timeNow}`;
+
+        bed.studentName = null;
+        bed.grade = 'Available';
+        bed.attendanceStatus = 'PRESENT';
+        bed.lastUpdated = `Vacated Today • ${timeNow}`;
+
+        const std = this.students.find(
+          (s) => s.fullName.toLowerCase() === movingStudent.toLowerCase()
+        );
+        if (std) {
+          std.hostelRoom = `${targetBed.building.split(' ')[1]}-${targetBed.room.replace('Room ', '')}`;
+        }
+
+        this.logAudit(
+          this.currentUser?.fullName || 'Chief Warden',
+          this.currentUser?.roleType || 'ADMIN',
+          'HOSTEL_ROOM_TRANSFER',
+          'HOSTEL',
+          targetBed.bedId,
+          `Transferred ${movingStudent} from ${bed.bedId} to ${targetBed.bedId}`
+        );
+        return targetBed;
+      }
+    }
+
+    bed.studentName = studentName;
+    bed.grade = studentName ? grade : 'Available';
+    bed.lastUpdated = `Updated Today • ${timeNow}`;
+
+    if (studentName) {
+      const std = this.students.find(
+        (s) => s.fullName.toLowerCase() === studentName.toLowerCase()
+      );
+      if (std) {
+        std.hostelRoom = `${bed.building.split(' ')[1]}-${bed.room.replace('Room ', '')}`;
+      }
+    }
+
+    this.logAudit(
+      this.currentUser?.fullName || 'Chief Warden',
+      this.currentUser?.roleType || 'ADMIN',
+      studentName ? 'HOSTEL_BED_ALLOCATE' : 'HOSTEL_BED_VACATE',
+      'HOSTEL',
+      bed.bedId,
+      studentName
+        ? `Allocated bed ${bed.bedId} (${bed.room}) to ${studentName} (${grade})`
+        : `Vacated bed ${bed.bedId} (${bed.room})`
+    );
+    return bed;
+  }
+
+  updateHostelBedAttendance(
+    bedId: string,
+    status?: HostelBedRecord['attendanceStatus']
+  ) {
+    const bed = this.hostelBeds.find((b) => b.bedId === bedId);
+    if (!bed) return undefined;
+
+    const order: HostelBedRecord['attendanceStatus'][] = [
+      'PRESENT',
+      'OUTING',
+      'MEDICAL',
+      'LEAVE',
+      'ABSENT',
+      'APPROVED_MOVEMENT',
+    ];
+    const nextStatus =
+      status || order[(order.indexOf(bed.attendanceStatus) + 1) % order.length];
+    bed.attendanceStatus = nextStatus;
+    bed.lastUpdated = `Today • ${new Date().toLocaleTimeString([], {
+      hour: '2-digit',
+      minute: '2-digit',
+    })}`;
+
+    this.logAudit(
+      this.currentUser?.fullName || 'Warden',
+      this.currentUser?.roleType || 'ADMIN',
+      'HOSTEL_ATTENDANCE',
+      'HOSTEL',
+      bedId,
+      `Marked hostel attendance for ${bed.studentName || bedId} as ${nextStatus}`
+    );
+    return bed;
+  }
+
+  addHostelMovement(data: {
+    studentName: string;
+    room: string;
+    departure: string;
+    purpose: string;
+    destination: string;
+    expectedReturn: string;
+    authorizedBy?: string;
+  }) {
+    const newMov: HostelMovementRecord = {
+      id: `MV-${Math.floor(103 + Math.random() * 890)}`,
+      studentName: data.studentName,
+      room: data.room,
+      departure: data.departure || 'Now',
+      purpose: data.purpose,
+      destination: data.destination,
+      expectedReturn: data.expectedReturn || '19:00 Today',
+      actualReturn: 'Out on Pass',
+      status: 'OUT',
+      authorizedBy: data.authorizedBy || 'Chief Warden Dr. M. Soni',
+    };
+    this.hostelMovements.unshift(newMov);
+
+    // Update bed status to APPROVED_MOVEMENT if student is in hostelBeds
+    const matchedBed = this.hostelBeds.find(
+      (b) =>
+        b.studentName &&
+        data.studentName.toLowerCase().includes(b.studentName.toLowerCase())
+    );
+    if (matchedBed) {
+      matchedBed.attendanceStatus = 'APPROVED_MOVEMENT';
+    }
+
+    // Also log in Approval Center as Hostel Movement workflow
+    this.approvals.unshift({
+      id: `app-hm-${Date.now()}`,
+      module: 'HOSTEL',
+      title: `Hostel Gate Pass: ${data.studentName} (${data.destination})`,
+      requesterName: data.studentName,
+      requesterRole: 'STUDENT',
+      department: 'Hostel & Residential Boarding',
+      currentStage: 'Warden Authorization',
+      status: 'APPROVED',
+      slaDeadline: '6 Hours SLA',
+      priority: 'NORMAL',
+      description: `Purpose: ${data.purpose} • Destination: ${data.destination} • Expected Return: ${newMov.expectedReturn}`,
+      createdAt: 'Just now',
+      history: [
+        {
+          actor: newMov.authorizedBy,
+          action: 'APPROVED',
+          timestamp: 'Just now',
+          comment: 'Hostel movement pass issued',
+        },
+      ],
+    });
+
+    this.logAudit(
+      this.currentUser?.fullName || 'Chief Warden',
+      this.currentUser?.roleType || 'ADMIN',
+      'HOSTEL_MOVEMENT_OUT',
+      'HOSTEL',
+      newMov.id,
+      `Issued hostel movement pass for ${data.studentName} to ${data.destination}`
+    );
+    return newMov;
+  }
+
+  markHostelMovementReturned(movementId: string) {
+    const mv = this.hostelMovements.find((m) => m.id === movementId);
+    if (mv) {
+      const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      mv.actualReturn = `${timeStr} (Returned)`;
+      mv.status = 'RETURNED';
+
+      const matchedBed = this.hostelBeds.find(
+        (b) =>
+          b.studentName &&
+          mv.studentName.toLowerCase().includes(b.studentName.toLowerCase())
+      );
+      if (matchedBed) {
+        matchedBed.attendanceStatus = 'PRESENT';
+      }
+
+      this.logAudit(
+        this.currentUser?.fullName || 'Chief Warden',
+        this.currentUser?.roleType || 'ADMIN',
+        'HOSTEL_MOVEMENT_RETURN',
+        'HOSTEL',
+        movementId,
+        `Verified hostel return for ${mv.studentName} at ${timeStr}`
+      );
+    }
+    return mv;
+  }
+
+  addHostelVisitor(data: {
+    visitorName: string;
+    relation: string;
+    visitingStudent: string;
+    room: string;
+    idProofType?: string;
+  }) {
+    const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const nv: HostelVisitorRecord = {
+      id: `VS-0${this.hostelVisitors.length + 1}`,
+      visitorName: data.visitorName,
+      relation: data.relation,
+      visitingStudent: data.visitingStudent,
+      room: data.room,
+      idProofType: data.idProofType || 'Govt Photo ID & OTP Verified',
+      idVerified: true,
+      entryTime: timeStr,
+      exitTime: 'In Visitor Lounge',
+      status: 'CHECKED_IN',
+    };
+    this.hostelVisitors.unshift(nv);
+    this.logAudit(
+      this.currentUser?.fullName || 'Hostel Security',
+      this.currentUser?.roleType || 'ADMIN',
+      'HOSTEL_VISITOR_IN',
+      'HOSTEL',
+      nv.id,
+      `Checked in visitor ${nv.visitorName} (${nv.relation}) visiting ${nv.visitingStudent}`
+    );
+    return nv;
+  }
+
+  checkoutHostelVisitor(visitorId: string) {
+    const v = this.hostelVisitors.find((item) => item.id === visitorId);
+    if (v) {
+      const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      v.exitTime = timeStr;
+      v.status = 'CHECKED_OUT';
+      this.logAudit(
+        this.currentUser?.fullName || 'Hostel Security',
+        this.currentUser?.roleType || 'ADMIN',
+        'HOSTEL_VISITOR_OUT',
+        'HOSTEL',
+        visitorId,
+        `Checked out visitor ${v.visitorName} at ${timeStr}`
+      );
+    }
+    return v;
+  }
+
+  // ================= LIBRARY & INVENTORY END-TO-END METHODS (Section 8) =================
+  addLibraryBook(data: {
+    title: string;
+    author: string;
+    isbn?: string;
+    category: LibraryBookRecord['category'];
+    totalCopies: number;
+    isDigitalResource?: boolean;
+  }) {
+    const newBook: LibraryBookRecord = {
+      id: `BK-${Math.floor(906 + Math.random() * 90)}`,
+      isbn: data.isbn || `978-81-${Math.floor(100000 + Math.random() * 899999)}`,
+      title: data.title,
+      author: data.author,
+      category: data.category,
+      totalCopies: data.totalCopies,
+      availableCopies: data.totalCopies,
+      status: 'AVAILABLE',
+      borrower: '—',
+      renewalsCount: 0,
+      fineAmount: 0,
+      isDigitalResource: Boolean(data.isDigitalResource),
+    };
+    this.libraryBooks.unshift(newBook);
+
+    // Also add to Student E-Library studyMaterials if digital resource
+    if (data.isDigitalResource) {
+      const mappedSub: StudyMaterialItem['subject'] =
+        data.category === 'Mathematics'
+          ? 'Mathematics'
+          : data.category === 'Science'
+          ? 'Science'
+          : data.category === 'Literature'
+          ? 'English'
+          : 'Computer';
+      this.studyMaterials.unshift({
+        id: `mat-${Date.now()}`,
+        title: `${data.title} (${data.author})`,
+        subject: mappedSub,
+        format: 'PDF',
+        teacher: 'Ms. Sunita Rao (Chief Librarian)',
+        fileSizeOrDuration: '4.8 MB E-Book',
+        uploadedDate: 'Today',
+        isNew: true,
+      });
+    }
+
+    this.logAudit(
+      this.currentUser?.fullName || 'Chief Librarian',
+      this.currentUser?.roleType || 'ADMIN',
+      'LIBRARY_ADD_BOOK',
+      'LIBRARY',
+      newBook.id,
+      `Catalogued "${newBook.title}" (${newBook.totalCopies} copies)`
+    );
+    return newBook;
+  }
+
+  issueOrReturnLibraryBook(
+    bookId: string,
+    action: 'ISSUE' | 'RETURN' | 'RENEW' | 'RESERVE' | 'CLEAR_FINE' | 'LOST_DAMAGED',
+    studentName: string = 'Elena Vance (9-B)'
+  ) {
+    const book = this.libraryBooks.find((b) => b.id === bookId);
+    if (!book) return undefined;
+
+    if (action === 'ISSUE') {
+      book.status = 'ISSUED';
+      book.borrower = studentName;
+      book.availableCopies = Math.max(0, book.availableCopies - 1);
+      book.dueDate = 'Nov 14, 2026';
+      book.reservedBy = undefined;
+    } else if (action === 'RETURN') {
+      book.status = 'AVAILABLE';
+      book.borrower = '—';
+      book.availableCopies = Math.min(book.totalCopies, book.availableCopies + 1);
+      book.dueDate = undefined;
+      book.fineAmount = 0;
+      book.renewalsCount = 0;
+    } else if (action === 'RENEW') {
+      book.renewalsCount += 1;
+      book.dueDate = 'Nov 28, 2026 (+14d Renewed)';
+    } else if (action === 'RESERVE') {
+      book.status = 'RESERVED';
+      book.reservedBy = studentName;
+      if (book.borrower === '—') {
+        book.borrower = `${studentName} (Reserved)`;
+      }
+    } else if (action === 'CLEAR_FINE') {
+      book.fineAmount = 0;
+    } else if (action === 'LOST_DAMAGED') {
+      book.status = 'LOST_DAMAGED';
+      book.availableCopies = Math.max(0, book.availableCopies - 1);
+      book.fineAmount = 450;
+    }
+
+    this.logAudit(
+      this.currentUser?.fullName || 'Librarian',
+      this.currentUser?.roleType || 'ADMIN',
+      `LIBRARY_${action}`,
+      'LIBRARY',
+      book.id,
+      `Library ${action} for "${book.title}" (${studentName})`
+    );
+    return book;
+  }
+
+  addInventoryAssetOrder(data: {
+    item: string;
+    category: InventoryAssetRecord['category'];
+    stock: string;
+    vendor: string;
+    amount: string;
+  }) {
+    const poNum = `PO-${Math.floor(4105 + Math.random() * 800)}`;
+    const newAsset: InventoryAssetRecord = {
+      code: `AST-${data.category.slice(0, 3).toUpperCase()}-${Math.floor(10 + Math.random() * 89)}`,
+      item: data.item,
+      category: data.category,
+      stock: data.stock,
+      vendor: data.vendor,
+      poNumber: poNum,
+      amount: data.amount,
+      poStatus: 'Pending Approval',
+      maintenance: 'Awaiting Delivery & Verification',
+    };
+    this.inventoryAssets.unshift(newAsset);
+
+    // Sync to Principal Executive Approvals & Admin Approval Center
+    this.principalExecutiveApprovals.unshift({
+      id: `exec-po-${Date.now()}`,
+      initials: 'AG',
+      requesterName: 'Mr. Arvind Gupta',
+      requesterRole: 'Procurement Lead',
+      title: `${poNum}: ${data.item}`,
+      categoryBadge: 'Procurement PO',
+      description: `Vendor: ${data.vendor} • Quantity: ${data.stock} • Dept: ${data.category}`,
+      amount: data.amount,
+      slaString: 'Due in 24h',
+      status: 'PENDING',
+    });
+
+    this.logAudit(
+      this.currentUser?.fullName || 'Procurement Lead',
+      this.currentUser?.roleType || 'ADMIN',
+      'RAISE_PURCHASE_ORDER',
+      'INVENTORY',
+      newAsset.code,
+      `Raised ${poNum} for ${data.item} (${data.amount}) with ${data.vendor}`
+    );
+    return newAsset;
+  }
+
+  advanceInventoryAssetStatus(code: string) {
+    const ast = this.inventoryAssets.find((a) => a.code === code);
+    if (!ast) return undefined;
+    const order: InventoryAssetRecord['poStatus'][] = [
+      'Request Raised',
+      'Pending Approval',
+      'PO Approved',
+      'Delivered',
+      'Verified & Active',
+    ];
+    const next = order[Math.min(order.indexOf(ast.poStatus) + 1, order.length - 1)];
+    ast.poStatus = next;
+    if (next === 'Verified & Active') {
+      ast.maintenance = 'Verified & Calibrated Today';
+    }
+    this.logAudit(
+      this.currentUser?.fullName || 'Admin',
+      this.currentUser?.roleType || 'ADMIN',
+      'UPDATE_ASSET_PO',
+      'INVENTORY',
+      code,
+      `Advanced ${ast.item} (${ast.poNumber}) to ${next}`
+    );
+    return ast;
+  }
+
+  // ================= ADMISSIONS CRM, ALUMNI & EVENTS/CLUBS METHODS =================
+  advanceAdmissionLead(leadId: string) {
+    const order: AdmissionLeadRecord['stage'][] = [
+      'Enquiry',
+      'Counselling',
+      'Application',
+      'Doc Verification',
+      'Entrance Test',
+      'Interview',
+      'Selected',
+      'Fee Paid',
+      'Confirmed',
+    ];
+    const lead = this.admissionLeads.find((l) => l.id === leadId);
+    if (lead) {
+      const idx = order.indexOf(lead.stage);
+      lead.stage = order[Math.min(idx + 1, order.length - 1)];
+      this.logAudit(
+        this.currentUser?.fullName || 'Admissions Lead',
+        this.currentUser?.roleType || 'ADMIN',
+        'ADVANCE_ADMISSION_LEAD',
+        'ADMISSIONS',
+        leadId,
+        `Advanced candidate ${lead.candidateName} to ${lead.stage}`
+      );
+    }
+    return lead;
+  }
+
+  addAdmissionLead(data: Omit<AdmissionLeadRecord, 'id'>) {
+    const newLead: AdmissionLeadRecord = {
+      id: `LD-2026-0${this.admissionLeads.length + 1}`,
+      ...data,
+    };
+    this.admissionLeads.unshift(newLead);
+    return newLead;
+  }
+
+  addAlumniProfile(data: Omit<AlumniProfileRecord, 'id' | 'mentorshipSlotsBooked'>) {
+    const newAlumni: AlumniProfileRecord = {
+      id: `alm-${Date.now()}`,
+      ...data,
+      mentorshipSlotsBooked: 1,
+    };
+    this.alumniProfiles.unshift(newAlumni);
+    this.logAudit(
+      this.currentUser?.fullName || 'Alumni Relations',
+      this.currentUser?.roleType || 'ADMIN',
+      'ADD_ALUMNI_PROFILE',
+      'ALUMNI',
+      newAlumni.id,
+      `Registered alumni ${newAlumni.name} (${newAlumni.graduationYear})`
+    );
+    return newAlumni;
+  }
+
+  bookAlumniMentorship(alumniId: string, studentName: string = 'Elena Vance') {
+    const alm = this.alumniProfiles.find((a) => a.id === alumniId);
+    if (alm) {
+      alm.mentorshipSlotsBooked += 1;
+      this.logAudit(
+        studentName,
+        'STUDENT',
+        'BOOK_ALUMNI_MENTORSHIP',
+        'ALUMNI',
+        alumniId,
+        `${studentName} booked career mentorship session with ${alm.name} (${alm.organization})`
+      );
+    }
+    return alm;
+  }
+
+  addCampusEventOrClub(data: Omit<CampusEventClubRecord, 'id' | 'certificateIssuedCount'>) {
+    const newEv: CampusEventClubRecord = {
+      id: `evc-${Date.now()}`,
+      ...data,
+      certificateIssuedCount: 0,
+    };
+    this.campusEventsAndClubs.unshift(newEv);
+    this.logAudit(
+      this.currentUser?.fullName || 'Events Coordinator',
+      this.currentUser?.roleType || 'ADMIN',
+      'CREATE_EVENT_CLUB',
+      'EVENTS',
+      newEv.id,
+      `Created ${newEv.category}: "${newEv.name}" at ${newEv.venue}`
+    );
+    return newEv;
+  }
+
+  issueEventClubCertificate(eventId: string, studentName: string = 'Elena Vance') {
+    const ev = this.campusEventsAndClubs.find((e) => e.id === eventId);
+    if (!ev) return undefined;
+    ev.certificateIssuedCount += 1;
+    const certType: ParentCertificateItem['type'] =
+      ev.category === 'Sports'
+        ? 'SPORTS'
+        : ev.category === 'Event'
+        ? 'EVENT'
+        : 'PARTICIPATION';
+    return this.requestParentCertificate({
+      studentName,
+      type: certType,
+      purpose: `${ev.name} — ${ev.resultOrAchievement}`,
+    });
   }
 
   applyParentStudentLeave(data: { childId: string; startDate: string; endDate: string; reason: string; type: ParentLeaveRequest['type'] }) {

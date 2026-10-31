@@ -14,9 +14,10 @@ import { useApp } from '../../context/AppContext';
 import { downloadStudyMaterialPdf } from '../../utils/downloadHelper';
 
 export const StudentStudyMaterialScreen: React.FC = () => {
-  const { currentUser, studyMaterials, showToast } = useApp();
+  const { currentUser, studyMaterials, libraryBooks, issueOrReturnLibraryBook, showToast } = useApp();
   const [selectedSubject, setSelectedSubject] = useState<string>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
+  const activeStudentLabel = `${currentUser?.fullName || 'Elena Vance'} (9-B)`;
 
   const subjects = ['ALL', 'Mathematics', 'Science', 'English', 'Social'];
 
@@ -204,6 +205,111 @@ export const StudentStudyMaterialScreen: React.FC = () => {
             </div>
           );
         })}
+      </div>
+
+      {/* Campus Physical & Digital Library Catalogue & Reservation Desk (Screens #46–#47) */}
+      <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
+          <div>
+            <h2 className="font-extrabold text-base text-navy flex items-center space-x-2">
+              <BookOpen className="w-4 h-4 text-[#176B87]" />
+              <span>Campus Library Catalogue, Reservations &amp; Borrowed Books (Screens #46–#47)</span>
+            </h2>
+            <p className="text-xs text-slate-500">
+              Live circulation synced with Admin &amp; Librarian Console • Reserve available titles or renew your issued books (+14 days).
+            </p>
+          </div>
+          <span className="px-3 py-1 rounded-full bg-teal/10 text-[#176B87] text-xs font-bold w-fit">
+            {libraryBooks.reduce((sum, b) => sum + b.availableCopies, 0)} Copies Available Now
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 text-xs">
+          {libraryBooks.map((book) => {
+            const isHeldByMe = book.borrower
+              .toLowerCase()
+              .includes((currentUser?.fullName || 'Elena Vance').toLowerCase());
+            return (
+              <div
+                key={book.id}
+                className={`p-4 rounded-xl border space-y-2 transition ${
+                  isHeldByMe
+                    ? 'border-[#176B87] bg-sky-50/40'
+                    : 'border-slate-200 bg-slate-50/60'
+                }`}
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <div className="flex items-center space-x-1.5">
+                      <span className="font-mono text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-200 text-slate-700">
+                        {book.id}
+                      </span>
+                      <span className="font-bold text-navy text-sm">{book.title}</span>
+                    </div>
+                    <div className="text-[11px] text-slate-500 mt-0.5">
+                      {book.author} • {book.category} •{' '}
+                      <strong>
+                        {book.availableCopies}/{book.totalCopies} Copies Available
+                      </strong>
+                    </div>
+                  </div>
+                  <span
+                    className={`px-2 py-0.5 rounded text-[10px] font-bold shrink-0 ${
+                      book.status === 'AVAILABLE'
+                        ? 'bg-emerald-100 text-emerald-800'
+                        : book.status === 'RESERVED'
+                        ? 'bg-purple-100 text-purple-800'
+                        : 'bg-amber-100 text-amber-800'
+                    }`}
+                  >
+                    {isHeldByMe ? `MY ${book.status}` : book.status}
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between pt-2 border-t border-slate-200/70">
+                  <div className="text-[11px] text-slate-600">
+                    {book.borrower !== '—' ? (
+                      <>
+                        Holder: <strong>{book.borrower}</strong>
+                        {book.dueDate ? ` • Due: ${book.dueDate}` : ''}
+                      </>
+                    ) : (
+                      <span className="text-emerald-700 font-semibold">
+                        On Shelf — Ready for Issue or Reservation
+                      </span>
+                    )}
+                    {book.fineAmount > 0 && (
+                      <span className="ml-2 text-rose-600 font-bold">
+                        • Fine: ₹{book.fineAmount}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="flex items-center space-x-1.5">
+                    {isHeldByMe && book.status === 'ISSUED' && (
+                      <button
+                        type="button"
+                        onClick={() => issueOrReturnLibraryBook(book.id, 'RENEW', activeStudentLabel)}
+                        className="px-2.5 py-1 rounded-lg bg-[#176B87] hover:bg-[#123B5D] text-white font-bold text-[11px] cursor-pointer"
+                      >
+                        Renew (+14d)
+                      </button>
+                    )}
+                    {book.status === 'AVAILABLE' && (
+                      <button
+                        type="button"
+                        onClick={() => issueOrReturnLibraryBook(book.id, 'RESERVE', activeStudentLabel)}
+                        className="px-2.5 py-1 rounded-lg bg-[#123B5D] hover:bg-[#176B87] text-white font-bold text-[11px] cursor-pointer"
+                      >
+                        Reserve Book
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
     </div>
   );

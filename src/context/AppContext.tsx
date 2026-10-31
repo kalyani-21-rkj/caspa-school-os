@@ -43,6 +43,14 @@ import {
   ParentTransportTelemetry,
   ParentLeaveRequest,
   ParentPtmBooking,
+  HostelBedRecord,
+  HostelMovementRecord,
+  HostelVisitorRecord,
+  LibraryBookRecord,
+  InventoryAssetRecord,
+  AdmissionLeadRecord,
+  AlumniProfileRecord,
+  CampusEventClubRecord,
 } from '../types';
 import {
   USERS,
@@ -296,10 +304,86 @@ interface AppContextType {
   payAllPendingFees: (childId: string, paymentMethod?: string) => void;
   acknowledgeParentNotice: (noticeId: string) => void;
   registerParentNoticeEvent: (noticeId: string) => void;
-  requestParentCertificate: (data: { childId: string; type: ParentCertificateItem['type']; purpose: string }) => void;
+  requestParentCertificate: (data: {
+    childId?: string;
+    studentName?: string;
+    type: ParentCertificateItem['type'];
+    purpose: string;
+    signedBy?: string;
+  }) => ParentCertificateItem;
+  verifyCertificateByCode: (code: string) => {
+    verified: boolean;
+    certificate: ParentCertificateItem | null;
+    message: string;
+  };
   applyParentStudentLeave: (data: { childId: string; startDate: string; endDate: string; reason: string; type: ParentLeaveRequest['type'] }) => void;
   bookParentPtmSlot: (data: { childId: string; timeSlot: string; teacherName: string; subject: string; venue?: string }) => void;
   linkNewChild: (data: { fullName: string; grade: string; section: string; rollNo: number; curriculum: 'CBSE' | 'IB' | 'ICSE' }) => void;
+
+  // Enterprise ERP Shared Modules (Hostel, Library, Inventory, Admissions CRM, Alumni, Events/Clubs)
+  hostelBeds: HostelBedRecord[];
+  hostelMovements: HostelMovementRecord[];
+  hostelVisitors: HostelVisitorRecord[];
+  libraryBooks: LibraryBookRecord[];
+  inventoryAssets: InventoryAssetRecord[];
+  admissionLeads: AdmissionLeadRecord[];
+  alumniProfiles: AlumniProfileRecord[];
+  campusEventsAndClubs: CampusEventClubRecord[];
+  allocateOrTransferHostelBed: (
+    bedId: string,
+    studentName: string | null,
+    grade?: string,
+    targetTransferBedId?: string
+  ) => void;
+  updateHostelBedAttendance: (
+    bedId: string,
+    status?: HostelBedRecord['attendanceStatus']
+  ) => void;
+  addHostelMovement: (data: {
+    studentName: string;
+    room: string;
+    departure: string;
+    purpose: string;
+    destination: string;
+    expectedReturn: string;
+    authorizedBy?: string;
+  }) => void;
+  markHostelMovementReturned: (movementId: string) => void;
+  addHostelVisitor: (data: {
+    visitorName: string;
+    relation: string;
+    visitingStudent: string;
+    room: string;
+    idProofType?: string;
+  }) => void;
+  checkoutHostelVisitor: (visitorId: string) => void;
+  addLibraryBook: (data: {
+    title: string;
+    author: string;
+    isbn?: string;
+    category: LibraryBookRecord['category'];
+    totalCopies: number;
+    isDigitalResource?: boolean;
+  }) => void;
+  issueOrReturnLibraryBook: (
+    bookId: string,
+    action: 'ISSUE' | 'RETURN' | 'RENEW' | 'RESERVE' | 'CLEAR_FINE' | 'LOST_DAMAGED',
+    studentName?: string
+  ) => void;
+  addInventoryAssetOrder: (data: {
+    item: string;
+    category: InventoryAssetRecord['category'];
+    stock: string;
+    vendor: string;
+    amount: string;
+  }) => void;
+  advanceInventoryAssetStatus: (code: string) => void;
+  advanceAdmissionLead: (leadId: string) => void;
+  addAdmissionLead: (data: Omit<AdmissionLeadRecord, 'id'>) => void;
+  addAlumniProfile: (data: Omit<AlumniProfileRecord, 'id' | 'mentorshipSlotsBooked'>) => void;
+  bookAlumniMentorship: (alumniId: string, studentName?: string) => void;
+  addCampusEventOrClub: (data: Omit<CampusEventClubRecord, 'id' | 'certificateIssuedCount'>) => void;
+  issueEventClubCertificate: (eventId: string, studentName?: string) => ParentCertificateItem | undefined;
 
   // Toast System
   toastMessage: string | null;
@@ -480,6 +564,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [parentTransport, setParentTransport] = useState<ParentTransportTelemetry>({ ...db.parentTransport });
   const [parentLeaves, setParentLeaves] = useState<ParentLeaveRequest[]>([...db.parentLeaves]);
   const [parentPtms, setParentPtms] = useState<ParentPtmBooking[]>([...db.parentPtms]);
+
+  // Enterprise ERP Shared State (Hostel, Library, Inventory, Admissions CRM, Alumni, Events/Clubs)
+  const [hostelBeds, setHostelBeds] = useState<HostelBedRecord[]>([...db.hostelBeds]);
+  const [hostelMovements, setHostelMovements] = useState<HostelMovementRecord[]>([...db.hostelMovements]);
+  const [hostelVisitors, setHostelVisitors] = useState<HostelVisitorRecord[]>([...db.hostelVisitors]);
+  const [libraryBooks, setLibraryBooks] = useState<LibraryBookRecord[]>([...db.libraryBooks]);
+  const [inventoryAssets, setInventoryAssets] = useState<InventoryAssetRecord[]>([...db.inventoryAssets]);
+  const [admissionLeads, setAdmissionLeads] = useState<AdmissionLeadRecord[]>([...db.admissionLeads]);
+  const [alumniProfiles, setAlumniProfiles] = useState<AlumniProfileRecord[]>([...db.alumniProfiles]);
+  const [campusEventsAndClubs, setCampusEventsAndClubs] = useState<CampusEventClubRecord[]>([
+    ...db.campusEventsAndClubs,
+  ]);
 
   const activeChild = parentChildren.find(c => c.id === activeChildId) || parentChildren[0];
 
@@ -1165,10 +1261,25 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
-  const requestParentCertificate = (data: { childId: string; type: ParentCertificateItem['type']; purpose: string }) => {
+  const requestParentCertificate = (data: {
+    childId?: string;
+    studentName?: string;
+    type: ParentCertificateItem['type'];
+    purpose: string;
+    signedBy?: string;
+  }) => {
     const newCert = db.requestParentCertificate(data);
     setParentCertificates([...db.parentCertificates]);
-    showToast(`Generated verified ${newCert.title} (Code: ${newCert.verificationCode})`);
+    setStudentAchievements([...db.studentAchievements]);
+    setAuditLogs([...db.auditLogs]);
+    showToast(
+      `Generated verified ${newCert.title} for ${newCert.childName} (Code: ${newCert.verificationCode})`
+    );
+    return newCert;
+  };
+
+  const verifyCertificateByCode = (code: string) => {
+    return db.verifyCertificateByCode(code);
   };
 
   const applyParentStudentLeave = (data: { childId: string; startDate: string; endDate: string; reason: string; type: ParentLeaveRequest['type'] }) => {
@@ -1187,6 +1298,211 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const newChild = db.linkNewChild(data);
     setParentChildren([...db.parentChildren]);
     showToast(`Linked student ${newChild.fullName} successfully!`);
+  };
+
+  // ================= HOSTEL, LIBRARY, INVENTORY, ADMISSIONS, ALUMNI & EVENTS HANDLERS =================
+  const allocateOrTransferHostelBed = (
+    bedId: string,
+    studentName: string | null,
+    grade: string = '9-B',
+    targetTransferBedId?: string
+  ) => {
+    const res = db.allocateOrTransferHostelBed(bedId, studentName, grade, targetTransferBedId);
+    if (res) {
+      setHostelBeds([...db.hostelBeds]);
+      setStudents([...db.students]);
+      setAuditLogs([...db.auditLogs]);
+      if (targetTransferBedId) {
+        showToast(`Transferred ${res.studentName} to bed ${res.bedId} (${res.room})`);
+      } else if (studentName) {
+        showToast(`Allocated bed ${bedId} to ${studentName} (${grade})`);
+      } else {
+        showToast(`Vacated bed ${bedId} — Marked Available`);
+      }
+    }
+  };
+
+  const updateHostelBedAttendance = (
+    bedId: string,
+    status?: HostelBedRecord['attendanceStatus']
+  ) => {
+    const res = db.updateHostelBedAttendance(bedId, status);
+    if (res) {
+      setHostelBeds([...db.hostelBeds]);
+      setAuditLogs([...db.auditLogs]);
+      showToast(
+        `Updated hostel roll-call for ${res.studentName || res.bedId}: ${res.attendanceStatus}`
+      );
+    }
+  };
+
+  const addHostelMovement = (data: {
+    studentName: string;
+    room: string;
+    departure: string;
+    purpose: string;
+    destination: string;
+    expectedReturn: string;
+    authorizedBy?: string;
+  }) => {
+    const mv = db.addHostelMovement(data);
+    setHostelMovements([...db.hostelMovements]);
+    setHostelBeds([...db.hostelBeds]);
+    setApprovals([...db.approvals]);
+    setAuditLogs([...db.auditLogs]);
+    showToast(
+      `Issued Hostel Movement Gate Pass (${mv.id}) for ${mv.studentName} → ${mv.destination}`
+    );
+  };
+
+  const markHostelMovementReturned = (movementId: string) => {
+    const mv = db.markHostelMovementReturned(movementId);
+    if (mv) {
+      setHostelMovements([...db.hostelMovements]);
+      setHostelBeds([...db.hostelBeds]);
+      setAuditLogs([...db.auditLogs]);
+      showToast(`Verified return for ${mv.studentName} (${mv.actualReturn})`);
+    }
+  };
+
+  const addHostelVisitor = (data: {
+    visitorName: string;
+    relation: string;
+    visitingStudent: string;
+    room: string;
+    idProofType?: string;
+  }) => {
+    const nv = db.addHostelVisitor(data);
+    setHostelVisitors([...db.hostelVisitors]);
+    setAuditLogs([...db.auditLogs]);
+    showToast(`Logged verified visitor entry for ${nv.visitorName} (${nv.entryTime})`);
+  };
+
+  const checkoutHostelVisitor = (visitorId: string) => {
+    const v = db.checkoutHostelVisitor(visitorId);
+    if (v) {
+      setHostelVisitors([...db.hostelVisitors]);
+      setAuditLogs([...db.auditLogs]);
+      showToast(`Checked out visitor ${v.visitorName} at ${v.exitTime}`);
+    }
+  };
+
+  const addLibraryBook = (data: {
+    title: string;
+    author: string;
+    isbn?: string;
+    category: LibraryBookRecord['category'];
+    totalCopies: number;
+    isDigitalResource?: boolean;
+  }) => {
+    const newBook = db.addLibraryBook(data);
+    setLibraryBooks([...db.libraryBooks]);
+    setStudyMaterials([...db.studyMaterials]);
+    setAuditLogs([...db.auditLogs]);
+    showToast(
+      `Added "${newBook.title}" (${newBook.totalCopies} copies)${
+        data.isDigitalResource ? ' & synced to Student E-Library!' : ' to Library Catalogue!'
+      }`
+    );
+  };
+
+  const issueOrReturnLibraryBook = (
+    bookId: string,
+    action: 'ISSUE' | 'RETURN' | 'RENEW' | 'RESERVE' | 'CLEAR_FINE' | 'LOST_DAMAGED',
+    studentName: string = 'Elena Vance (9-B)'
+  ) => {
+    const updated = db.issueOrReturnLibraryBook(bookId, action, studentName);
+    if (updated) {
+      setLibraryBooks([...db.libraryBooks]);
+      setAuditLogs([...db.auditLogs]);
+      const actionLabels: Record<typeof action, string> = {
+        ISSUE: `Issued "${updated.title}" to ${studentName} (Due: ${updated.dueDate})`,
+        RETURN: `Recorded return for "${updated.title}" • Copy restored to shelf`,
+        RENEW: `Renewed "${updated.title}" (+14 days) for ${updated.borrower}`,
+        RESERVE: `Reserved "${updated.title}" for ${studentName}`,
+        CLEAR_FINE: `Cleared overdue library fine for "${updated.title}"`,
+        LOST_DAMAGED: `Flagged "${updated.title}" as Lost/Damaged (Replacement fee ₹450 applied)`,
+      };
+      showToast(actionLabels[action]);
+    }
+  };
+
+  const addInventoryAssetOrder = (data: {
+    item: string;
+    category: InventoryAssetRecord['category'];
+    stock: string;
+    vendor: string;
+    amount: string;
+  }) => {
+    const newAsset = db.addInventoryAssetOrder(data);
+    setInventoryAssets([...db.inventoryAssets]);
+    setPrincipalExecutiveApprovals([...db.principalExecutiveApprovals]);
+    setAuditLogs([...db.auditLogs]);
+    showToast(
+      `Raised ${newAsset.poNumber} for "${newAsset.item}" (${newAsset.amount}) • Synced to Principal Approvals`
+    );
+  };
+
+  const advanceInventoryAssetStatus = (code: string) => {
+    const updated = db.advanceInventoryAssetStatus(code);
+    if (updated) {
+      setInventoryAssets([...db.inventoryAssets]);
+      setAuditLogs([...db.auditLogs]);
+      showToast(`Updated ${updated.poNumber} (${updated.item}) status to: ${updated.poStatus}`);
+    }
+  };
+
+  const advanceAdmissionLead = (leadId: string) => {
+    const updated = db.advanceAdmissionLead(leadId);
+    if (updated) {
+      setAdmissionLeads([...db.admissionLeads]);
+      setAuditLogs([...db.auditLogs]);
+      showToast(`Advanced ${updated.candidateName} to stage: ${updated.stage}`);
+    }
+  };
+
+  const addAdmissionLead = (data: Omit<AdmissionLeadRecord, 'id'>) => {
+    db.addAdmissionLead(data);
+    setAdmissionLeads([...db.admissionLeads]);
+  };
+
+  const addAlumniProfile = (data: Omit<AlumniProfileRecord, 'id' | 'mentorshipSlotsBooked'>) => {
+    const alm = db.addAlumniProfile(data);
+    setAlumniProfiles([...db.alumniProfiles]);
+    setAuditLogs([...db.auditLogs]);
+    showToast(`Added ${alm.name} (${alm.graduationYear}) to Alumni & Mentorship Network`);
+  };
+
+  const bookAlumniMentorship = (alumniId: string, studentName: string = 'Elena Vance') => {
+    const alm = db.bookAlumniMentorship(alumniId, studentName);
+    if (alm) {
+      setAlumniProfiles([...db.alumniProfiles]);
+      setAuditLogs([...db.auditLogs]);
+      showToast(`Booked career mentorship session with ${alm.name} (${alm.organization})`);
+    }
+  };
+
+  const addCampusEventOrClub = (
+    data: Omit<CampusEventClubRecord, 'id' | 'certificateIssuedCount'>
+  ) => {
+    const ev = db.addCampusEventOrClub(data);
+    setCampusEventsAndClubs([...db.campusEventsAndClubs]);
+    setAuditLogs([...db.auditLogs]);
+    showToast(`Created ${ev.category}: "${ev.name}" at ${ev.venue}`);
+  };
+
+  const issueEventClubCertificate = (eventId: string, studentName: string = 'Elena Vance') => {
+    const cert = db.issueEventClubCertificate(eventId, studentName);
+    if (cert) {
+      setCampusEventsAndClubs([...db.campusEventsAndClubs]);
+      setParentCertificates([...db.parentCertificates]);
+      setStudentAchievements([...db.studentAchievements]);
+      setAuditLogs([...db.auditLogs]);
+      showToast(
+        `Issued ${cert.title} to ${studentName} (QR Code: ${cert.verificationCode}) • Synced to Vault & Student Honors!`
+      );
+    }
+    return cert;
   };
 
   // ================= MASTER TIMETABLE BUILDER, PUBLISHER & TEACHER COMPLETION =================
@@ -1677,9 +1993,34 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         acknowledgeParentNotice,
         registerParentNoticeEvent,
         requestParentCertificate,
+        verifyCertificateByCode,
         applyParentStudentLeave,
         bookParentPtmSlot,
         linkNewChild,
+        hostelBeds,
+        hostelMovements,
+        hostelVisitors,
+        libraryBooks,
+        inventoryAssets,
+        admissionLeads,
+        alumniProfiles,
+        campusEventsAndClubs,
+        allocateOrTransferHostelBed,
+        updateHostelBedAttendance,
+        addHostelMovement,
+        markHostelMovementReturned,
+        addHostelVisitor,
+        checkoutHostelVisitor,
+        addLibraryBook,
+        issueOrReturnLibraryBook,
+        addInventoryAssetOrder,
+        advanceInventoryAssetStatus,
+        advanceAdmissionLead,
+        addAdmissionLead,
+        addAlumniProfile,
+        bookAlumniMentorship,
+        addCampusEventOrClub,
+        issueEventClubCertificate,
         toastMessage,
         showToast,
       }}

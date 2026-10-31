@@ -35,7 +35,20 @@ export const PrincipalOperationsSubsystemScreen: React.FC<PrincipalOperationsSub
   subsystemId,
   onBack,
 }) => {
-  const { showToast, dispatchSubsystemAction, buses } = useApp();
+  const {
+    showToast,
+    dispatchSubsystemAction,
+    buses,
+    hostelBeds,
+    hostelMovements,
+    libraryBooks,
+    inventoryAssets,
+    campusEventsAndClubs,
+    admissionLeads,
+    advanceInventoryAssetStatus,
+    issueOrReturnLibraryBook,
+    advanceAdmissionLead,
+  } = useApp();
 
   const [activeModuleId, setActiveModuleId] = useState<string>(subsystemId);
   const [fleetBroadcastMsg, setFleetBroadcastMsg] = useState('');
@@ -343,6 +356,31 @@ export const PrincipalOperationsSubsystemScreen: React.FC<PrincipalOperationsSub
               </div>
             ))}
           </div>
+
+          {/* Live Boarder Roll-Call & Active Movement Passes */}
+          <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="font-extrabold text-[#0E2C48] text-sm">
+                Live Hostel Bed Allocation &amp; Movement Gate Passes (Synced with Admin Hub)
+              </h3>
+              <span className="text-xs font-bold text-teal bg-teal/10 px-2.5 py-1 rounded-full">
+                {hostelBeds.filter((b) => b.studentName).length} / {hostelBeds.length} Sampled Beds Occupied
+              </span>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+              {hostelBeds.slice(0, 6).map((b) => (
+                <div key={b.bedId} className="p-3 rounded-xl border border-slate-200 bg-slate-50 flex items-center justify-between">
+                  <div>
+                    <div className="font-bold text-[#0E2C48]">{b.bedId} • {b.room}</div>
+                    <div className="text-[11px] text-slate-600">{b.studentName || 'Vacant Bed'} ({b.grade})</div>
+                  </div>
+                  <span className="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 font-bold text-[10px]">
+                    {b.attendanceStatus}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       )}
 
@@ -351,34 +389,32 @@ export const PrincipalOperationsSubsystemScreen: React.FC<PrincipalOperationsSub
         <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs space-y-5">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="font-extrabold text-[#0E2C48] text-base">Overdue Lending & Repertoire Notice Queue</h3>
-              <p className="text-xs text-slate-500 mt-0.5">Automated return tracking across senior and secondary stacks</p>
+              <h3 className="font-extrabold text-[#0E2C48] text-base">Live Library Circulation, Reservations &amp; Overdue Queue</h3>
+              <p className="text-xs text-slate-500 mt-0.5">Synchronized in real time with Librarian &amp; Student E-Library</p>
             </div>
             <span className="text-xs font-bold text-amber-800 bg-amber-50 px-3 py-1 rounded-full border border-amber-200">
-              18 Overdue Items
+              {libraryBooks.length} Active Catalogue Titles
             </span>
           </div>
 
           <div className="divide-y divide-slate-100">
-            {[
-              { id: 'lib-1', student: 'Marcus Brody (9B)', title: 'Higher Algebra by Hall & Knight', days: 12, fine: '₹60' },
-              { id: 'lib-2', student: 'Rohan Deshmukh (11A)', title: 'University Physics (Young & Freedman)', days: 18, fine: '₹90' },
-              { id: 'lib-3', student: 'Tara Sen (10C)', title: 'Campbell Biology (12th Edition)', days: 9, fine: '₹45' },
-              { id: 'lib-4', student: 'Devon Patel (9B)', title: 'Introduction to Algorithms (CLRS)', days: 22, fine: '₹110' },
-            ].map((book) => (
+            {libraryBooks.map((book) => (
               <div key={book.id} className="py-3.5 flex items-center justify-between">
                 <div>
-                  <div className="font-bold text-sm text-[#0E2C48]">{book.title}</div>
+                  <div className="font-bold text-sm text-[#0E2C48]">
+                    {book.title} <span className="text-xs text-slate-400">({book.id})</span>
+                  </div>
                   <div className="text-xs text-slate-500 mt-0.5">
-                    Borrowed by: <span className="font-semibold text-slate-700">{book.student}</span> • Overdue: {book.days} days
+                    Holder: <span className="font-semibold text-slate-700">{book.borrower}</span> • Copies:{' '}
+                    {book.availableCopies}/{book.totalCopies} • Status: <strong>{book.status}</strong>
                   </div>
                 </div>
                 <div className="flex items-center space-x-3">
                   <div className="text-right">
-                    <span className="text-xs font-bold text-rose-600">Fine: {book.fine}</span>
+                    <span className="text-xs font-bold text-rose-600">Fine: ₹{book.fineAmount}</span>
                   </div>
                   <button
-                    onClick={() => handleSendLibraryReminder(book.student, book.title)}
+                    onClick={() => handleSendLibraryReminder(book.borrower, book.title)}
                     className="px-3 py-1.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-xs font-bold text-slate-700 transition"
                   >
                     Send Recall Notice
@@ -396,42 +432,43 @@ export const PrincipalOperationsSubsystemScreen: React.FC<PrincipalOperationsSub
           <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="font-extrabold text-[#0E2C48] text-base">Pending Purchase Order Authorizations</h3>
-                <p className="text-xs text-slate-500 mt-0.5">Principal statutory approval required for academic equipment exceeding ₹50,000</p>
+                <h3 className="font-extrabold text-[#0E2C48] text-base">Live Purchase Orders &amp; Asset Authorizations</h3>
+                <p className="text-xs text-slate-500 mt-0.5">Principal statutory approval synced with Admin Procurement Hub</p>
               </div>
               <span className="text-xs font-bold text-purple-700 bg-purple-50 px-3 py-1 rounded-full border border-purple-200">
-                4 Purchase Orders Pending
+                {inventoryAssets.length} Active Asset Orders
               </span>
             </div>
 
             <div className="space-y-3">
-              {[
-                { id: 'PO-4092', dept: 'Science Laboratories', item: 'Organic Chemistry Glassware & Spectrophotometer Reagents', amount: '₹1,24,000', vendor: 'ThermoFisher Scientific' },
-                { id: 'PO-4095', dept: 'Computer Science Dept', item: '40 Raspberry Pi 5 Robotics Kits for Grade 9 Innovation Lab', amount: '₹2,80,000', vendor: 'Element14 Tech' },
-                { id: 'PO-4098', dept: 'Examination Cell', item: 'OEMS Optical Mark Reader Examination Answer Sheets (10,000 units)', amount: '₹65,000', vendor: 'Apex Security Printers' },
-                { id: 'PO-4101', dept: 'Sports & Athletics', item: 'Synthetic Basketball Court Resurfacing & Tournament Equipment', amount: '₹1,95,000', vendor: 'SportMaster Infrastructure' },
-              ].map((po) => (
-                <div key={po.id} className="p-4 rounded-xl border border-slate-200 bg-slate-50/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              {inventoryAssets.map((po) => (
+                <div key={po.code} className="p-4 rounded-xl border border-slate-200 bg-slate-50/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div>
                     <div className="flex items-center space-x-2">
-                      <span className="font-bold text-xs text-sky-700 bg-sky-100 px-2 py-0.5 rounded">{po.id}</span>
-                      <span className="text-xs font-bold text-slate-500">{po.dept}</span>
+                      <span className="font-bold text-xs text-sky-700 bg-sky-100 px-2 py-0.5 rounded">{po.poNumber}</span>
+                      <span className="text-xs font-bold text-slate-500">{po.category}</span>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800">
+                        {po.poStatus}
+                      </span>
                     </div>
                     <div className="font-extrabold text-sm text-[#0E2C48] mt-1">{po.item}</div>
-                    <div className="text-xs text-slate-400 mt-0.5">Vendor: {po.vendor}</div>
+                    <div className="text-xs text-slate-400 mt-0.5">Vendor: {po.vendor} • Stock: {po.stock}</div>
                   </div>
 
                   <div className="flex items-center justify-between sm:justify-end space-x-4 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-200">
                     <div className="text-right">
                       <div className="text-base font-black text-[#0E2C48]">{po.amount}</div>
-                      <div className="text-[10px] text-emerald-600 font-bold">Budget Allocated</div>
+                      <div className="text-[10px] text-emerald-600 font-bold">{po.maintenance}</div>
                     </div>
                     <button
-                      onClick={() => handleApprovePO(po.id, po.item, po.amount)}
+                      onClick={() => {
+                        advanceInventoryAssetStatus(po.code);
+                        handleApprovePO(po.poNumber, po.item, po.amount);
+                      }}
                       className="px-4 py-2 rounded-xl bg-teal hover:bg-teal/90 text-white text-xs font-bold flex items-center space-x-1.5 transition shadow-xs"
                     >
                       <CheckCircle2 className="w-3.5 h-3.5" />
-                      <span>Approve PO</span>
+                      <span>{po.poStatus === 'Verified & Active' ? 'Verified' : 'Approve / Advance PO'}</span>
                     </button>
                   </div>
                 </div>

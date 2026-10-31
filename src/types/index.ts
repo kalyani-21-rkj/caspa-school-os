@@ -710,13 +710,140 @@ export interface ParentCertificateItem {
   childId: string;
   childName: string;
   title: string;
-  type: 'BONAFIDE' | 'TRANSFER' | 'CHARACTER' | 'STUDY' | 'TUITION_FEE' | 'NOC';
+  type:
+    | 'BONAFIDE'
+    | 'TRANSFER'
+    | 'CHARACTER'
+    | 'CONDUCT'
+    | 'STUDY'
+    | 'PARTICIPATION'
+    | 'ACHIEVEMENT'
+    | 'SPORTS'
+    | 'EVENT'
+    | 'TUITION_FEE'
+    | 'NOC';
   purpose: string;
   status: 'READY' | 'PROCESSING' | 'APPROVED' | 'SUBMITTED';
   requestDate: string;
   issuedDate?: string;
   verificationCode: string;
+  signedBy?: string;
   downloadUrl?: string;
+}
+
+export interface HostelBedRecord {
+  bedId: string;
+  building: string;
+  floor: string;
+  room: string;
+  wardenName: string;
+  studentName: string | null;
+  studentId?: string;
+  grade: string;
+  attendanceStatus: 'PRESENT' | 'ABSENT' | 'LEAVE' | 'OUTING' | 'MEDICAL' | 'APPROVED_MOVEMENT';
+  lastUpdated?: string;
+}
+
+export interface HostelMovementRecord {
+  id: string;
+  studentName: string;
+  room: string;
+  departure: string;
+  purpose: string;
+  destination: string;
+  expectedReturn: string;
+  actualReturn: string;
+  status: 'OUT' | 'RETURNED' | 'PENDING_APPROVAL';
+  authorizedBy: string;
+}
+
+export interface HostelVisitorRecord {
+  id: string;
+  visitorName: string;
+  relation: string;
+  visitingStudent: string;
+  room: string;
+  idProofType: string;
+  idVerified: boolean;
+  entryTime: string;
+  exitTime: string;
+  status: 'CHECKED_IN' | 'CHECKED_OUT';
+}
+
+export interface LibraryBookRecord {
+  id: string;
+  isbn: string;
+  title: string;
+  author: string;
+  category: 'Mathematics' | 'Science' | 'Computer Science' | 'Literature' | 'Reference' | 'Digital E-Book';
+  totalCopies: number;
+  availableCopies: number;
+  status: 'AVAILABLE' | 'ISSUED' | 'RESERVED' | 'LOST_DAMAGED';
+  borrower: string;
+  reservedBy?: string;
+  dueDate?: string;
+  renewalsCount: number;
+  fineAmount: number;
+  isDigitalResource?: boolean;
+}
+
+export interface InventoryAssetRecord {
+  code: string;
+  item: string;
+  category: 'Laboratory' | 'IT & Robotics' | 'Sports' | 'Furniture & Infra' | 'Examination';
+  stock: string;
+  vendor: string;
+  poNumber: string;
+  amount: string;
+  poStatus: 'Request Raised' | 'Pending Approval' | 'PO Approved' | 'Delivered' | 'Verified & Active';
+  maintenance: string;
+}
+
+export interface AdmissionLeadRecord {
+  id: string;
+  candidateName: string;
+  applyingGrade: string;
+  parentName: string;
+  phone: string;
+  stage:
+    | 'Enquiry'
+    | 'Counselling'
+    | 'Application'
+    | 'Doc Verification'
+    | 'Entrance Test'
+    | 'Interview'
+    | 'Selected'
+    | 'Fee Paid'
+    | 'Confirmed';
+  testScore: string;
+  counsellor: string;
+}
+
+export interface AlumniProfileRecord {
+  id: string;
+  name: string;
+  graduationYear: string;
+  higherEducation: string;
+  organization: string;
+  industry: string;
+  location: string;
+  achievement: string;
+  contributionType: 'Mentorship' | 'Internship Sponsor' | 'Guest Talk' | 'Endowment Donor';
+  contributionDetail: string;
+  mentorshipSlotsBooked: number;
+}
+
+export interface CampusEventClubRecord {
+  id: string;
+  name: string;
+  category: 'Event' | 'Sports' | 'Club';
+  dateOrSchedule: string;
+  venue: string;
+  coordinator: string;
+  participantsCount: number;
+  attendanceRate: string;
+  resultOrAchievement: string;
+  certificateIssuedCount: number;
 }
 
 export interface ParentTransportTelemetry {
@@ -775,4 +902,5 @@ export interface ParentPtmBooking {
   status: 'BOOKED' | 'COMPLETED' | 'CANCELLED';
   notes?: string;
 }
+
 

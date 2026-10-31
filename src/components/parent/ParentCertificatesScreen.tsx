@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { ParentCertificateItem } from '../../types';
+import { downloadCertificatePdf } from '../../utils/downloadHelper';
 
 export const ParentCertificatesScreen: React.FC = () => {
   const {
@@ -38,29 +39,54 @@ export const ParentCertificatesScreen: React.FC = () => {
       desc: 'Proof of active enrollment for Passport, Visa, Bank accounts, or transit passes.',
     },
     {
-      type: 'TUITION_FEE',
-      title: 'Tuition Fee Certificate (80C)',
-      desc: 'Comprehensive annual breakdown for Income Tax rebate under Section 80C.',
-    },
-    {
-      type: 'CHARACTER',
-      title: 'Character & Conduct Certificate',
-      desc: 'Official verification of student deportment for national competitions & external bodies.',
-    },
-    {
       type: 'STUDY',
-      title: 'Medium of Instruction Certificate',
-      desc: 'Certifies that instruction and examinations are delivered exclusively in English.',
-    },
-    {
-      type: 'NOC',
-      title: 'No Objection Certificate (NOC)',
-      desc: 'Institutional NOC for international travel, sports tournaments, or external exams.',
+      title: 'Study & Medium of Instruction Certificate',
+      desc: 'Certifies active scholastic study and English medium instruction.',
     },
     {
       type: 'TRANSFER',
       title: 'Transfer Certificate (TC)',
       desc: 'Formal migration & scholastic clearance documentation for school transfer.',
+    },
+    {
+      type: 'CHARACTER',
+      title: 'Character Certificate',
+      desc: 'Official verification of student character for external bodies & scholarships.',
+    },
+    {
+      type: 'CONDUCT',
+      title: 'Student Conduct & Deportment Certificate',
+      desc: 'Certifies exemplary discipline and behavioral standing across academic terms.',
+    },
+    {
+      type: 'PARTICIPATION',
+      title: 'Co-Curricular Participation Certificate',
+      desc: 'Official record of participation in inter-school Olympiads, MUN, and clubs.',
+    },
+    {
+      type: 'ACHIEVEMENT',
+      title: 'Academic & Merit Achievement Certificate',
+      desc: 'Honors distinction, rank holder status, and scholastic excellence.',
+    },
+    {
+      type: 'SPORTS',
+      title: 'Sports & Athletics Honors Certificate',
+      desc: 'Official varsity sports representation and tournament medal record.',
+    },
+    {
+      type: 'EVENT',
+      title: 'Campus Event & Symposium Certificate',
+      desc: 'Recognizes leadership and representation in institutional events.',
+    },
+    {
+      type: 'TUITION_FEE',
+      title: 'Tuition Fee Certificate (80C)',
+      desc: 'Comprehensive annual breakdown for Income Tax rebate under Section 80C.',
+    },
+    {
+      type: 'NOC',
+      title: 'No Objection Certificate (NOC)',
+      desc: 'Institutional NOC for international travel, sports tournaments, or external exams.',
     },
   ];
 
@@ -191,7 +217,18 @@ export const ParentCertificatesScreen: React.FC = () => {
                   <span>Preview</span>
                 </button>
                 <button
-                  onClick={() => showToast(`Downloaded verified ${cert.title} PDF`)}
+                  onClick={() => {
+                    downloadCertificatePdf({
+                      title: cert.title,
+                      subtitle: `Issued for ${cert.childName} • Purpose: ${cert.purpose} • Verification Code: ${cert.verificationCode}`,
+                      category: cert.type,
+                      ranking: `Verified (${cert.verificationCode})`,
+                      awardYear: '2026-2027',
+                      studentName: cert.childName,
+                      grade: `${activeChild.grade}-${activeChild.section}`,
+                    });
+                    showToast(`Downloaded verified ${cert.title} PDF (${cert.verificationCode})`);
+                  }}
                   className="px-3.5 py-2 rounded-xl bg-teal hover:bg-teal-dark text-white text-xs font-bold transition flex items-center space-x-1.5 shadow-xs"
                 >
                   <Download className="w-3.5 h-3.5" />
@@ -251,6 +288,15 @@ export const ParentCertificatesScreen: React.FC = () => {
               </button>
               <button
                 onClick={() => {
+                  downloadCertificatePdf({
+                    title: viewingCert.title,
+                    subtitle: `Issued for ${viewingCert.childName} • Purpose: ${viewingCert.purpose} • Verification Code: ${viewingCert.verificationCode}`,
+                    category: viewingCert.type,
+                    ranking: `Verified (${viewingCert.verificationCode})`,
+                    awardYear: '2026-2027',
+                    studentName: viewingCert.childName,
+                    grade: `${activeChild.grade}-${activeChild.section}`,
+                  });
                   showToast(`Downloaded verified ${viewingCert.title} PDF`);
                   setViewingCert(null);
                 }}

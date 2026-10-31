@@ -493,60 +493,128 @@ async function startServer() {
   // 7. Enterprise ERP Modules (Sections 4, 8, 9, 10, 11, 12, 13, 15, 16 & 24)
   app.get('/api/v1/admissions/leads', (_req: Request, res: Response) => {
     res.json({
-      funnel: { enquiries: 342, counselling: 184, testsCleared: 92, interviews: 34, confirmed: 28, conversionRate: '18.3%' },
-      leads: [
-        { id: 'LD-2026-01', candidateName: 'Aarav Singhania', applyingGrade: 'Grade 11', stage: 'Interview', testScore: '94%' },
-        { id: 'LD-2026-02', candidateName: 'Zoya Merchant', applyingGrade: 'Grade 9', stage: 'Selected', testScore: '91%' },
-      ],
+      funnel: {
+        enquiries: 342,
+        counselling: 184,
+        testsCleared: 92,
+        interviews: db.admissionLeads.filter((l) => l.stage === 'Interview').length + 33,
+        confirmed: 24 + db.admissionLeads.filter((l) => l.stage === 'Confirmed').length,
+        conversionRate: '18.3%',
+      },
+      leads: db.admissionLeads,
     });
   });
 
+  app.post('/api/v1/admissions/leads/:id/advance', (req: Request, res: Response) => {
+    const updated = db.advanceAdmissionLead(req.params.id);
+    res.json({ success: Boolean(updated), lead: updated });
+  });
+
   app.get('/api/v1/hostel/overview', (_req: Request, res: Response) => {
+    const occupied = db.hostelBeds.filter((b) => Boolean(b.studentName)).length;
     res.json({
-      occupancy: '198/240',
-      availableBeds: 42,
-      hierarchy: ['Block A (Senior Boys) -> Floor 1 -> Rooms 101-110', 'Block B (Senior Girls) -> Floor 2 -> Rooms 201-210'],
+      occupancy: `${occupied}/${db.hostelBeds.length}`,
+      availableBeds: db.hostelBeds.length - occupied,
+      beds: db.hostelBeds,
+      movements: db.hostelMovements,
+      visitors: db.hostelVisitors,
       curfewVerified: true,
     });
+  });
+
+  app.post('/api/v1/hostel/beds/allocate', (req: Request, res: Response) => {
+    const { bedId, studentName, grade, targetTransferBedId } = req.body;
+    const updated = db.allocateOrTransferHostelBed(bedId, studentName ?? null, grade, targetTransferBedId);
+    res.json({ success: Boolean(updated), bed: updated, beds: db.hostelBeds });
+  });
+
+  app.post('/api/v1/hostel/beds/:bedId/attendance', (req: Request, res: Response) => {
+    const updated = db.updateHostelBedAttendance(req.params.bedId, req.body.status);
+    res.json({ success: Boolean(updated), bed: updated });
+  });
+
+  app.post('/api/v1/hostel/movements', (req: Request, res: Response) => {
+    const mv = db.addHostelMovement(req.body);
+    res.status(201).json({ success: true, movement: mv });
+  });
+
+  app.post('/api/v1/hostel/movements/:id/return', (req: Request, res: Response) => {
+    const mv = db.markHostelMovementReturned(req.params.id);
+    res.json({ success: Boolean(mv), movement: mv });
+  });
+
+  app.post('/api/v1/hostel/visitors', (req: Request, res: Response) => {
+    const visitor = db.addHostelVisitor(req.body);
+    res.status(201).json({ success: true, visitor });
+  });
+
+  app.post('/api/v1/hostel/visitors/:id/checkout', (req: Request, res: Response) => {
+    const visitor = db.checkoutHostelVisitor(req.params.id);
+    res.json({ success: Boolean(visitor), visitor });
   });
 
   app.get('/api/v1/library/catalogue', (_req: Request, res: Response) => {
     res.json({
       circulationIndex: '94%',
-      overdueBooksCount: 18,
-      books: [
-        { id: 'BK-901', title: 'Concepts of Physics (H.C. Verma)', status: 'AVAILABLE', copies: '24/28' },
-        { id: 'BK-902', title: 'Higher Algebra (Hall & Knight)', status: 'ISSUED', copies: '12/15' },
-      ],
+      overdueBooksCount: db.libraryBooks.filter((b) => b.fineAmount > 0).length,
+      books: db.libraryBooks,
     });
+  });
+
+  app.post('/api/v1/library/books', (req: Request, res: Response) => {
+    const book = db.addLibraryBook(req.body);
+    res.status(201).json({ success: true, book });
+  });
+
+  app.post('/api/v1/library/books/:id/action', (req: Request, res: Response) => {
+    const { action, studentName } = req.body;
+    const book = db.issueOrReturnLibraryBook(req.params.id, action, studentName);
+    res.json({ success: Boolean(book), book });
   });
 
   app.get('/api/v1/inventory/assets', (_req: Request, res: Response) => {
     res.json({
-      pendingPurchaseOrders: 4,
-      assets: [
-        { code: 'AST-LAB-01', item: 'Digital Compound Microscopes', stock: 42, vendor: 'ThermoFisher Scientific', status: 'Verified' },
-        { code: 'AST-IT-04', item: 'Raspberry Pi 5 Robotics Kits', stock: 40, vendor: 'Element14 Tech', status: 'PO Approved' },
-      ],
+      pendingPurchaseOrders: db.inventoryAssets.filter((a) => a.poStatus !== 'Verified & Active').length,
+      assets: db.inventoryAssets,
     });
   });
 
+  app.post('/api/v1/inventory/assets', (req: Request, res: Response) => {
+    const asset = db.addInventoryAssetOrder(req.body);
+    res.status(201).json({ success: true, asset });
+  });
+
+  app.post('/api/v1/inventory/assets/:code/advance', (req: Request, res: Response) => {
+    const asset = db.advanceInventoryAssetStatus(req.params.code);
+    res.json({ success: Boolean(asset), asset });
+  });
+
+  app.get('/api/v1/certificates', (_req: Request, res: Response) => {
+    res.json({ certificates: db.parentCertificates });
+  });
+
+  app.post('/api/v1/certificates/generate', (req: Request, res: Response) => {
+    const cert = db.requestParentCertificate(req.body);
+    res.status(201).json({ success: true, certificate: cert });
+  });
+
   app.get('/api/v1/certificates/verify/:code', (req: Request, res: Response) => {
-    const { code } = req.params;
-    res.json({
-      verified: true,
-      certificateCode: code,
-      issuer: 'CASPA School OS Registrar',
-      signedBy: 'Dr. Mehta (Principal)',
-      status: 'AUTHENTIC_ACTIVE',
-    });
+    const result = db.verifyCertificateByCode(req.params.code);
+    res.json(result);
   });
 
   app.get('/api/v1/alumni-career', (_req: Request, res: Response) => {
     res.json({
-      totalAlumni: 1840,
+      totalAlumni: 1840 + db.alumniProfiles.length,
       mentorsActive: 64,
-      seniorStreams: ['STEM (JEE/SAT)', 'Biomedical (NEET)', 'Commerce & Finance (CA/CUET)', 'Global Liberal Arts (IB/CLAT)'],
+      alumni: db.alumniProfiles,
+      eventsAndClubs: db.campusEventsAndClubs,
+      seniorStreams: [
+        'STEM (JEE/SAT)',
+        'Biomedical (NEET)',
+        'Commerce & Finance (CA/CUET)',
+        'Global Liberal Arts (IB/CLAT)',
+      ],
     });
   });
 

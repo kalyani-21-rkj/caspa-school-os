@@ -24,65 +24,54 @@ import {
   Send,
   Layers,
   ArrowRight,
+  AlertTriangle,
+  RefreshCw,
+  ArrowLeftRight,
+  UserCheck,
+  LogOut,
+  Check,
+  XCircle,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { AccessControlledBadge } from '../common/AccessControlledBadge';
 import { downloadCertificatePdf, downloadTextAsPdf } from '../../utils/downloadHelper';
-
-interface AdmissionLead {
-  id: string;
-  candidateName: string;
-  applyingGrade: string;
-  parentName: string;
-  phone: string;
-  stage:
-    | 'Enquiry'
-    | 'Counselling'
-    | 'Application'
-    | 'Doc Verification'
-    | 'Entrance Test'
-    | 'Interview'
-    | 'Selected'
-    | 'Fee Paid'
-    | 'Confirmed';
-  testScore: string;
-  counsellor: string;
-}
-
-interface HostelBedItem {
-  bedId: string;
-  building: string;
-  floor: string;
-  room: string;
-  studentName: string | null;
-  grade: string;
-  attendanceStatus: 'PRESENT' | 'ABSENT' | 'LEAVE' | 'OUTING' | 'MEDICAL' | 'APPROVED_MOVEMENT';
-}
-
-interface HostelMovementItem {
-  id: string;
-  studentName: string;
-  room: string;
-  departure: string;
-  purpose: string;
-  destination: string;
-  expectedReturn: string;
-  actualReturn: string;
-  authorizedBy: string;
-}
-
-interface HostelVisitorItem {
-  id: string;
-  visitorName: string;
-  relation: string;
-  visitingStudent: string;
-  idVerified: boolean;
-  entryTime: string;
-  exitTime: string;
-}
+import { ParentCertificateItem, LibraryBookRecord, InventoryAssetRecord } from '../../types';
 
 export const AdminEnterpriseErpHub: React.FC = () => {
-  const { showToast, admitStudent, setActiveTab } = useApp();
+  const {
+    showToast,
+    admitStudent,
+    students,
+    parentCertificates,
+    requestParentCertificate,
+    verifyCertificateByCode,
+    hostelBeds,
+    hostelMovements,
+    hostelVisitors,
+    libraryBooks,
+    inventoryAssets,
+    admissionLeads,
+    alumniProfiles,
+    campusEventsAndClubs,
+    allocateOrTransferHostelBed,
+    updateHostelBedAttendance,
+    addHostelMovement,
+    markHostelMovementReturned,
+    addHostelVisitor,
+    checkoutHostelVisitor,
+    addLibraryBook,
+    issueOrReturnLibraryBook,
+    addInventoryAssetOrder,
+    advanceInventoryAssetStatus,
+    advanceAdmissionLead,
+    addAdmissionLead,
+    addAlumniProfile,
+    bookAlumniMentorship,
+    addCampusEventOrClub,
+    issueEventClubCertificate,
+    createIncident,
+    createSafeguardingCase,
+  } = useApp();
 
   const [activePillar, setActivePillar] = useState<
     | 'ADMISSIONS_CRM'
@@ -91,137 +80,84 @@ export const AdminEnterpriseErpHub: React.FC = () => {
     | 'CERTIFICATES_ALUMNI_CAREER'
     | 'COMMUNICATION_PTM'
     | 'ANALYTICS_76_SCREENS'
-  >('ADMISSIONS_CRM');
+  >('HOSTEL');
 
   // 1. Admissions CRM State (Screens #27, #28, #29)
-  const [leads, setLeads] = useState<AdmissionLead[]>([
-    {
-      id: 'LD-2026-01',
-      candidateName: 'Aarav Singhania',
-      applyingGrade: 'Grade 11',
-      parentName: 'Vikram Singhania',
-      phone: '+91 98201 44120',
-      stage: 'Interview',
-      testScore: '94% (STEM Track)',
-      counsellor: 'Ms. Neha Kapoor',
-    },
-    {
-      id: 'LD-2026-02',
-      candidateName: 'Zoya Merchant',
-      applyingGrade: 'Grade 9',
-      parentName: 'Dr. Farhan Merchant',
-      phone: '+91 98452 33910',
-      stage: 'Selected',
-      testScore: '91% (Merit)',
-      counsellor: 'Mr. Pradeep Joshi',
-    },
-    {
-      id: 'LD-2026-03',
-      candidateName: 'Kabir Malhotra',
-      applyingGrade: 'Grade 6',
-      parentName: 'Ritu Malhotra',
-      phone: '+91 97411 20944',
-      stage: 'Doc Verification',
-      testScore: '88%',
-      counsellor: 'Ms. Neha Kapoor',
-    },
-    {
-      id: 'LD-2026-04',
-      candidateName: 'Meera Krishnan',
-      applyingGrade: 'Pre-Primary (KG-2)',
-      parentName: 'Suresh Krishnan',
-      phone: '+91 99002 88123',
-      stage: 'Counselling',
-      testScore: 'Interaction Passed',
-      counsellor: 'Mrs. Kavita Nair',
-    },
-  ]);
-
-  // Step-by-Step Admission Form with Auto-Save Draft (Section 20 & Screen #28)
   const [appStep, setAppStep] = useState<1 | 2 | 3>(1);
   const [appCandidate, setAppCandidate] = useState('');
   const [appGrade, setAppGrade] = useState('Grade 9');
   const [appParent, setAppParent] = useState('');
   const [appPhone, setAppPhone] = useState('');
 
-  // 2. Hostel State (Screens #42, #43, #44, #45)
-  const [selectedBuilding, setSelectedBuilding] = useState('Block A (Senior Boys)');
-  const [hostelBeds, setHostelBeds] = useState<HostelBedItem[]>([
-    { bedId: 'A-101-B1', building: 'Block A (Senior Boys)', floor: 'Floor 1', room: 'Room 101', studentName: 'Rohan Deshmukh', grade: '11-A', attendanceStatus: 'PRESENT' },
-    { bedId: 'A-101-B2', building: 'Block A (Senior Boys)', floor: 'Floor 1', room: 'Room 101', studentName: 'Marcus Brody', grade: '9-B', attendanceStatus: 'OUTING' },
-    { bedId: 'A-102-B1', building: 'Block A (Senior Boys)', floor: 'Floor 1', room: 'Room 102', studentName: 'Devon Patel', grade: '10-A', attendanceStatus: 'PRESENT' },
-    { bedId: 'A-102-B2', building: 'Block A (Senior Boys)', floor: 'Floor 1', room: 'Room 102', studentName: null, grade: 'Available', attendanceStatus: 'PRESENT' },
-    { bedId: 'B-201-B1', building: 'Block B (Senior Girls)', floor: 'Floor 2', room: 'Room 201', studentName: 'Elena Vance', grade: '9-B', attendanceStatus: 'PRESENT' },
-    { bedId: 'B-201-B2', building: 'Block B (Senior Girls)', floor: 'Floor 2', room: 'Room 201', studentName: 'Sophia Chen', grade: '9-B', attendanceStatus: 'MEDICAL' },
-  ]);
+  // 2. Hostel State (Screens #42, #43, #44, #45 — Section 10)
+  const [selectedBuilding, setSelectedBuilding] = useState('ALL');
+  const [allocatingBedId, setAllocatingBedId] = useState<string | null>(null);
+  const [selectedStudentForBed, setSelectedStudentForBed] = useState<string>('Aarav Singhania (11-A)');
+  const [transferSourceBedId, setTransferSourceBedId] = useState<string | null>(null);
+  const [transferTargetBedId, setTransferTargetBedId] = useState<string>('');
 
-  const [movements, setMovements] = useState<HostelMovementItem[]>([
-    {
-      id: 'MV-101',
-      studentName: 'Marcus Brody (9-B)',
-      room: 'A-101',
-      departure: '14:30 Today',
-      purpose: 'Dental Specialist Appointment',
-      destination: 'Manipal Hospital',
-      expectedReturn: '18:30 Today',
-      actualReturn: 'Pending Return',
-      authorizedBy: 'Chief Warden Dr. M. Soni',
-    },
-    {
-      id: 'MV-102',
-      studentName: 'Rohan Deshmukh (11-A)',
-      room: 'A-101',
-      departure: '08:00 AM',
-      purpose: 'State Physics Olympiad',
-      destination: 'IISc Campus Auditorium',
-      expectedReturn: '17:00 Today',
-      actualReturn: '16:45 (Returned)',
-      authorizedBy: 'Principal Dr. Mehta',
-    },
-  ]);
+  // New Hostel Movement Gate Pass Form
+  const [showMovementForm, setShowMovementForm] = useState(false);
+  const [movStudent, setMovStudent] = useState('Elena Vance (9-B)');
+  const [movRoom, setMovRoom] = useState('B-201');
+  const [movPurpose, setMovPurpose] = useState('');
+  const [movDestination, setMovDestination] = useState('');
+  const [movExpectedReturn, setMovExpectedReturn] = useState('19:30 Today');
 
-  const [visitors, setVisitors] = useState<HostelVisitorItem[]>([
-    {
-      id: 'VS-01',
-      visitorName: 'Mr. Richard Vance',
-      relation: 'Father (Guardian ID #G-902)',
-      visitingStudent: 'Elena Vance (B-201)',
-      idVerified: true,
-      entryTime: '16:10 PM',
-      exitTime: '17:05 PM',
-    },
-    {
-      id: 'VS-02',
-      visitorName: 'Mrs. Sunita Deshmukh',
-      relation: 'Mother (Guardian ID #G-418)',
-      visitingStudent: 'Rohan Deshmukh (A-101)',
-      idVerified: true,
-      entryTime: '17:20 PM',
-      exitTime: 'In Visitor Lounge',
-    },
-  ]);
+  // New Visitor Form
+  const [showVisitorForm, setShowVisitorForm] = useState(false);
+  const [visName, setVisName] = useState('');
+  const [visRelation, setVisRelation] = useState('Parent / Guardian');
+  const [visStudent, setVisStudent] = useState('Elena Vance (B-201)');
+  const [visRoom, setVisRoom] = useState('B-201');
+  const [visIdProof, setVisIdProof] = useState('Aadhaar & OTP Verified');
 
-  // 3. Library & Inventory State (Screens #46, #47, #48, #49)
-  const [libraryBooks, setLibraryBooks] = useState([
-    { id: 'BK-901', title: 'Concepts of Physics (H.C. Verma Vol 1 & 2)', copies: '24 / 28 Available', status: 'AVAILABLE', fine: '₹0', borrower: '—' },
-    { id: 'BK-902', title: 'Higher Algebra (Hall & Knight)', copies: '12 / 15 Available', status: 'ISSUED', fine: '₹60 (Overdue)', borrower: 'Marcus Brody (9-B)' },
-    { id: 'BK-903', title: 'Introduction to Algorithms (CLRS 4th Ed)', copies: '8 / 10 Available', status: 'RESERVED', fine: '₹0', borrower: 'Elena Vance (9-B)' },
-    { id: 'BK-904', title: 'Campbell Biology Digital & Print Bundle', copies: '19 / 20 Available', status: 'AVAILABLE', fine: '₹0', borrower: '—' },
-  ]);
+  // Hostel Incident / Emergency Form
+  const [showHostelIncidentForm, setShowHostelIncidentForm] = useState(false);
+  const [hostelIncTitle, setHostelIncTitle] = useState('');
+  const [hostelIncLocation, setHostelIncLocation] = useState('Block A • Floor 1 Corridor');
+  const [hostelIncSeverity, setHostelIncSeverity] = useState<'HIGH' | 'CRITICAL'>('HIGH');
 
-  const [inventoryAssets, setInventoryAssets] = useState([
-    { code: 'AST-LAB-01', item: 'Digital Compound Microscopes (Olympus)', stock: '42 Units', vendor: 'ThermoFisher Scientific', poStatus: 'Verified & Delivered', maintenance: 'Calibrated Oct 2026' },
-    { code: 'AST-IT-04', item: 'Raspberry Pi 5 Robotics & AI Kits', stock: '40 Kits', vendor: 'Element14 Tech', poStatus: 'PO-4095 Approved', maintenance: 'New Batch' },
-    { code: 'AST-SPT-09', item: 'FIBA Match Basketballs & Electronic Scoreboard', stock: '28 Units', vendor: 'SportMaster Infra', poStatus: 'Delivered', maintenance: 'Healthy' },
-  ]);
+  // 3. Library & Inventory State (Screens #46, #47, #48, #49 — Section 8)
+  const [libraryFilter, setLibraryFilter] = useState<'ALL' | 'AVAILABLE' | 'ISSUED' | 'RESERVED' | 'OVERDUE' | 'DIGITAL'>('ALL');
+  const [libraryBorrowerTarget, setLibraryBorrowerTarget] = useState('Elena Vance (9-B)');
+  const [showAddBookForm, setShowAddBookForm] = useState(false);
+  const [newBookTitle, setNewBookTitle] = useState('');
+  const [newBookAuthor, setNewBookAuthor] = useState('');
+  const [newBookCategory, setNewBookCategory] = useState<LibraryBookRecord['category']>('Science');
+  const [newBookCopies, setNewBookCopies] = useState(15);
+  const [newBookDigital, setNewBookDigital] = useState(true);
 
-  // 4. Certificates, QR Verification, Alumni & Career State (Screens #50–56)
-  const [certType, setCertType] = useState('Bonafide & Study Certificate');
-  const [certStudent, setCertStudent] = useState('Elena Vance (Grade 9B • Roll #14)');
-  const [verifyInput, setVerifyInput] = useState('CASPA-CERT-2026-8841');
-  const [verifyResult, setVerifyResult] = useState<string | null>(
-    'VERIFIED AUTHENTIC: Bonafide Certificate issued to Elena Vance (Grade 9B) on Oct 2026 • Signed by Principal Dr. Mehta'
-  );
+  const [showAddPoForm, setShowAddPoForm] = useState(false);
+  const [poItem, setPoItem] = useState('');
+  const [poCategory, setPoCategory] = useState<InventoryAssetRecord['category']>('Laboratory');
+  const [poStock, setPoStock] = useState('20 Units');
+  const [poVendor, setPoVendor] = useState('');
+  const [poAmount, setPoAmount] = useState('₹85,000');
+
+  // 4. Certificates, QR Verification, Alumni & Career State (Screens #50–56 — Section 13)
+  const [certTypeKey, setCertTypeKey] = useState<ParentCertificateItem['type']>('BONAFIDE');
+  const [certStudent, setCertStudent] = useState('Elena Vance');
+  const [certPurpose, setCertPurpose] = useState('Official Institutional Verification & Records');
+  const [verifyInput, setVerifyInput] = useState('CASPA-BNF-2026-9921');
+  const [verifyStatus, setVerifyStatus] = useState<{
+    verified: boolean;
+    message: string;
+    certificate: ParentCertificateItem | null;
+  }>(() => verifyCertificateByCode('CASPA-BNF-2026-9921'));
+
+  // Alumni & Events forms
+  const [showAddAlumniForm, setShowAddAlumniForm] = useState(false);
+  const [almName, setAlmName] = useState('');
+  const [almBatch, setAlmBatch] = useState('Batch of 2019');
+  const [almOrg, setAlmOrg] = useState('');
+  const [almContribution, setAlmContribution] = useState<'Mentorship' | 'Internship Sponsor' | 'Guest Talk' | 'Endowment Donor'>('Mentorship');
+
+  const [showAddEventForm, setShowAddEventForm] = useState(false);
+  const [evName, setEvName] = useState('');
+  const [evCategory, setEvCategory] = useState<'Event' | 'Sports' | 'Club'>('Event');
+  const [evVenue, setEvVenue] = useState('Main Auditorium');
+  const [evAchievement, setEvAchievement] = useState('Merit & Participation Honors');
 
   // 5. Communication Center & PTM State (Screens #57, #58)
   const [commAudience, setCommAudience] = useState('All Parents & Guardians (Campus-Wide)');
@@ -234,28 +170,19 @@ export const AdminEnterpriseErpHub: React.FC = () => {
   const [drillClass, setDrillClass] = useState('Grade 9');
   const [drillSection, setDrillSection] = useState('Section B');
 
-  const advanceLeadStage = (id: string) => {
-    const order: AdmissionLead['stage'][] = [
-      'Enquiry',
-      'Counselling',
-      'Application',
-      'Doc Verification',
-      'Entrance Test',
-      'Interview',
-      'Selected',
-      'Fee Paid',
-      'Confirmed',
-    ];
-    setLeads((prev) =>
-      prev.map((l) => {
-        if (l.id !== id) return l;
-        const idx = order.indexOf(l.stage);
-        const next = order[Math.min(idx + 1, order.length - 1)];
-        showToast(`Advanced ${l.candidateName} to stage: ${next}`);
-        return { ...l, stage: next };
-      })
-    );
-  };
+  const certificateTypeOptions: { key: ParentCertificateItem['type']; label: string }[] = [
+    { key: 'BONAFIDE', label: '1. Bonafide Student Certificate' },
+    { key: 'STUDY', label: '2. Study & Medium of Instruction Certificate' },
+    { key: 'TRANSFER', label: '3. Transfer Certificate (Official TC)' },
+    { key: 'CHARACTER', label: '4. Character Certificate' },
+    { key: 'CONDUCT', label: '5. Student Conduct & Deportment Certificate' },
+    { key: 'PARTICIPATION', label: '6. Co-Curricular Participation Certificate' },
+    { key: 'ACHIEVEMENT', label: '7. Academic & Merit Achievement Certificate' },
+    { key: 'SPORTS', label: '8. Sports & Athletics Honors Certificate' },
+    { key: 'EVENT', label: '9. Campus Event & Symposium Certificate' },
+    { key: 'TUITION_FEE', label: '10. Annual Tuition Fee Tax Certificate (80C)' },
+    { key: 'NOC', label: '11. No Objection Certificate (NOC)' },
+  ];
 
   const handleCompleteAdmissionWizard = (e: React.FormEvent) => {
     e.preventDefault();
@@ -270,8 +197,7 @@ export const AdminEnterpriseErpHub: React.FC = () => {
       parentEmail: 'parent@caspaschool.edu',
       busRoute: 'Route 12',
     });
-    const newLead: AdmissionLead = {
-      id: `LD-2026-0${leads.length + 1}`,
+    addAdmissionLead({
       candidateName: appCandidate.trim(),
       applyingGrade: appGrade,
       parentName: appParent.trim(),
@@ -279,13 +205,31 @@ export const AdminEnterpriseErpHub: React.FC = () => {
       stage: 'Confirmed',
       testScore: '92% Merit',
       counsellor: 'Mr. Pradeep Joshi',
-    };
-    setLeads([newLead, ...leads]);
+    });
     setAppCandidate('');
     setAppParent('');
     setAppPhone('');
     setAppStep(1);
   };
+
+  // Hostel Computed Stats
+  const occupiedBedsCount = hostelBeds.filter((b) => Boolean(b.studentName)).length;
+  const vacantBedsList = hostelBeds.filter((b) => !b.studentName);
+  const filteredHostelBeds =
+    selectedBuilding === 'ALL'
+      ? hostelBeds
+      : hostelBeds.filter((b) => b.building === selectedBuilding);
+
+  // Library Filtered List
+  const filteredBooks = libraryBooks.filter((b) => {
+    if (libraryFilter === 'ALL') return true;
+    if (libraryFilter === 'AVAILABLE') return b.status === 'AVAILABLE';
+    if (libraryFilter === 'ISSUED') return b.status === 'ISSUED';
+    if (libraryFilter === 'RESERVED') return b.status === 'RESERVED';
+    if (libraryFilter === 'OVERDUE') return b.fineAmount > 0;
+    if (libraryFilter === 'DIGITAL') return b.isDigitalResource;
+    return true;
+  });
 
   const all76Screens = [
     '1. Login / OTP / MFA / Forgot Password', '2. School & Campus Selector', '3. Role / Workspace Selector', '4. Principal Dashboard',
@@ -318,10 +262,10 @@ export const AdminEnterpriseErpHub: React.FC = () => {
             <span>Enterprise School ERP • Sections 8, 10, 12, 13, 15 &amp; 24</span>
           </div>
           <h1 className="text-xl sm:text-2xl font-black text-[#123B5D] tracking-tight">
-            Operations, Admissions CRM, Hostel, Library, Alumni &amp; Analytics Hub
+            Operations, Admissions CRM, Hostel, Library, Certificates &amp; Alumni Hub
           </h1>
           <p className="text-xs text-slate-500 mt-0.5">
-            Unified command center connecting Admissions CRM, Hostel, Library, Procurement, Certificates, Alumni, Career &amp; Analytics.
+            Live end-to-end command center synced with Principal Operations, Student E-Library &amp; Honors, and Parent Vault.
           </p>
         </div>
 
@@ -336,10 +280,10 @@ export const AdminEnterpriseErpHub: React.FC = () => {
       {/* 6 Pillar Navigation Bar */}
       <div className="flex items-center space-x-1.5 bg-white p-1.5 rounded-2xl border border-slate-200 shadow-2xs overflow-x-auto scrollbar-none">
         {[
-          { id: 'ADMISSIONS_CRM', label: '27-29. Admissions CRM', icon: Users },
           { id: 'HOSTEL', label: '42-45. Hostel & Visitors', icon: Building },
           { id: 'LIBRARY_INVENTORY', label: '46-49. Library & Procurement', icon: BookOpen },
-          { id: 'CERTIFICATES_ALUMNI_CAREER', label: '50-56. Certificates, Alumni & Career', icon: Award },
+          { id: 'CERTIFICATES_ALUMNI_CAREER', label: '50-56. Certificates, Alumni & Events', icon: Award },
+          { id: 'ADMISSIONS_CRM', label: '27-29. Admissions CRM', icon: Users },
           { id: 'COMMUNICATION_PTM', label: '57-58. Comms & PTM Center', icon: Megaphone },
           { id: 'ANALYTICS_76_SCREENS', label: '69. Analytics & 76-Screen Blueprint', icon: BarChart3 },
         ].map((tab) => {
@@ -370,8 +314,8 @@ export const AdminEnterpriseErpHub: React.FC = () => {
               { label: '1. Enquiries', val: '342', sub: '+14% YoY' },
               { label: '2. Counselling', val: '184', sub: 'Scheduled' },
               { label: '3. Entrance Tests', val: '92', sub: 'Cleared' },
-              { label: '4. Interviews', val: '34', sub: 'With Principal' },
-              { label: '5. Confirmed', val: `${24 + leads.filter((l) => l.stage === 'Confirmed').length}`, sub: '18.3% Conversion' },
+              { label: '4. Interviews', val: `${admissionLeads.filter((l) => l.stage === 'Interview').length + 33}`, sub: 'With Principal' },
+              { label: '5. Confirmed', val: `${24 + admissionLeads.filter((l) => l.stage === 'Confirmed').length}`, sub: '18.3% Conversion' },
             ].map((k) => (
               <div key={k.label} className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs">
                 <span className="text-[10px] font-bold uppercase text-slate-400">{k.label}</span>
@@ -396,7 +340,7 @@ export const AdminEnterpriseErpHub: React.FC = () => {
               </div>
 
               <div className="space-y-3">
-                {leads.map((lead) => (
+                {admissionLeads.map((lead) => (
                   <div
                     key={lead.id}
                     className="p-3.5 rounded-xl border border-slate-200 bg-slate-50/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
@@ -420,7 +364,7 @@ export const AdminEnterpriseErpHub: React.FC = () => {
                       </span>
                       <button
                         type="button"
-                        onClick={() => advanceLeadStage(lead.id)}
+                        onClick={() => advanceAdmissionLead(lead.id)}
                         className="px-3 py-1.5 rounded-lg bg-[#123B5D] hover:bg-[#176B87] text-white font-bold text-[11px] transition cursor-pointer"
                       >
                         Advance Stage &rarr;
@@ -526,126 +470,476 @@ export const AdminEnterpriseErpHub: React.FC = () => {
         </div>
       )}
 
-      {/* ================= PILLAR 2: HOSTEL MANAGEMENT UX (Screens #42, #43, #44, #45) ================= */}
+      {/* ================= PILLAR 2: HOSTEL MANAGEMENT UX (Screens #42, #43, #44, #45 — Section 10) ================= */}
       {activePillar === 'HOSTEL' && (
         <div className="space-y-6">
+          {/* Hostel KPI Strip */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs">
+              <span className="text-[10px] font-bold uppercase text-slate-400">Active Bed Occupancy</span>
+              <div className="text-2xl font-black text-[#123B5D] mt-1">
+                {occupiedBedsCount} / {hostelBeds.length} Beds
+              </div>
+              <span className="text-[11px] font-semibold text-emerald-600">
+                {vacantBedsList.length} Vacant Beds Ready
+              </span>
+            </div>
+            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs">
+              <span className="text-[10px] font-bold uppercase text-slate-400">Present in Dorms</span>
+              <div className="text-2xl font-black text-[#123B5D] mt-1">
+                {hostelBeds.filter((b) => b.studentName && b.attendanceStatus === 'PRESENT').length} Boarders
+              </div>
+              <span className="text-[11px] font-semibold text-[#176B87]">Night Roll-Call Active</span>
+            </div>
+            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs">
+              <span className="text-[10px] font-bold uppercase text-slate-400">Active Outing Passes</span>
+              <div className="text-2xl font-black text-[#123B5D] mt-1">
+                {hostelMovements.filter((m) => m.status === 'OUT').length} Out Now
+              </div>
+              <span className="text-[11px] font-semibold text-amber-600">
+                {hostelMovements.length} Total Gate Passes
+              </span>
+            </div>
+            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs">
+              <span className="text-[10px] font-bold uppercase text-slate-400">Visitors in Lounge</span>
+              <div className="text-2xl font-black text-[#123B5D] mt-1">
+                {hostelVisitors.filter((v) => v.status === 'CHECKED_IN').length} Checked In
+              </div>
+              <span className="text-[11px] font-semibold text-emerald-600">100% Govt ID Verified</span>
+            </div>
+          </div>
+
           {/* Building -> Floor -> Room -> Bed Hierarchy Explorer */}
           <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
               <div>
                 <h3 className="font-extrabold text-sm text-[#123B5D]">
-                  Hostel Hierarchy: Building → Floor → Room → Bed &amp; Attendance (Screens #42–#44)
+                  Hostel Hierarchy: Building → Floor → Room → Bed, Transfer &amp; Roll-Call (Screens #42–#44)
                 </h3>
                 <p className="text-xs text-slate-500">
-                  198 / 240 Beds Occupied • Click attendance status to cycle Present, Outing, Medical, Leave, or Movement.
+                  Allocate vacant beds, transfer students between rooms, vacate beds, or cycle roll-call (Present, Outing, Medical, Leave, Absent, Approved Movement).
                 </p>
               </div>
-              <div className="flex items-center space-x-2">
-                {['Block A (Senior Boys)', 'Block B (Senior Girls)'].map((b) => (
+              <div className="flex flex-wrap items-center gap-1.5">
+                {['ALL', 'Block A (Senior Boys)', 'Block B (Senior Girls)', 'Block C (Junior Dormitory)'].map((b) => (
                   <button
                     key={b}
                     type="button"
                     onClick={() => setSelectedBuilding(b)}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold cursor-pointer ${
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold cursor-pointer transition ${
                       selectedBuilding === b
                         ? 'bg-[#123B5D] text-white'
-                        : 'bg-slate-100 text-slate-600'
+                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                     }`}
                   >
-                    {b}
+                    {b === 'ALL' ? 'All Blocks' : b}
                   </button>
                 ))}
+                <button
+                  type="button"
+                  onClick={() => setShowHostelIncidentForm(!showHostelIncidentForm)}
+                  className="px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold flex items-center space-x-1 cursor-pointer"
+                >
+                  <AlertTriangle className="w-3.5 h-3.5" />
+                  <span>Log Hostel Incident</span>
+                </button>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              {hostelBeds
-                .filter((b) => b.building === selectedBuilding)
-                .map((bed) => (
+            {/* Hostel Emergency / Incident Reporting Drawer (Section 10) */}
+            {showHostelIncidentForm && (
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (!hostelIncTitle.trim()) return;
+                  createIncident({
+                    category: 'Child Safety',
+                    risk: hostelIncSeverity,
+                    location: `Hostel ${hostelIncLocation}`,
+                    description: hostelIncTitle.trim(),
+                    isAnonymous: false,
+                    reporterName: 'Chief Warden Dr. M. Soni',
+                    reporterRole: 'HOSTEL_WARDEN',
+                  });
+                  createSafeguardingCase({
+                    title: `Hostel Incident: ${hostelIncTitle.trim()} (${hostelIncLocation})`,
+                    category: 'Discipline',
+                    severity: hostelIncSeverity,
+                    details: `Logged from Hostel Command Center at ${hostelIncLocation}.`,
+                  });
+                  setHostelIncTitle('');
+                  setShowHostelIncidentForm(false);
+                }}
+                className="p-4 rounded-xl bg-rose-50 border border-rose-200 space-y-3 text-xs"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="font-extrabold text-rose-900 flex items-center space-x-1.5">
+                    <AlertTriangle className="w-4 h-4 text-rose-600" />
+                    <span>Report Restricted Hostel Emergency / Disciplinary Incident (Synced to Safety &amp; Principal)</span>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setShowHostelIncidentForm(false)}
+                    className="text-rose-700 font-bold"
+                  >
+                    Close
+                  </button>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <input
+                    type="text"
+                    value={hostelIncTitle}
+                    onChange={(e) => setHostelIncTitle(e.target.value)}
+                    placeholder="Describe incident (e.g. Curfew breach / Medical emergency)..."
+                    className="px-3 py-2 rounded-xl border border-rose-200 bg-white"
+                    required
+                  />
+                  <input
+                    type="text"
+                    value={hostelIncLocation}
+                    onChange={(e) => setHostelIncLocation(e.target.value)}
+                    placeholder="Block / Floor / Room"
+                    className="px-3 py-2 rounded-xl border border-rose-200 bg-white"
+                  />
+                  <div className="flex gap-2">
+                    <select
+                      value={hostelIncSeverity}
+                      onChange={(e) => setHostelIncSeverity(e.target.value as 'HIGH' | 'CRITICAL')}
+                      className="px-3 py-2 rounded-xl border border-rose-200 bg-white font-bold"
+                    >
+                      <option value="HIGH">High Severity</option>
+                      <option value="CRITICAL">Critical Emergency</option>
+                    </select>
+                    <button
+                      type="submit"
+                      className="px-4 py-2 rounded-xl bg-rose-600 text-white font-bold cursor-pointer shrink-0"
+                    >
+                      Submit Alert
+                    </button>
+                  </div>
+                </div>
+              </form>
+            )}
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
+              {filteredHostelBeds.map((bed) => {
+                const isOccupied = Boolean(bed.studentName);
+                const isAllocatingThis = allocatingBedId === bed.bedId;
+                const isTransferringThis = transferSourceBedId === bed.bedId;
+
+                const statusBadgeColor =
+                  bed.attendanceStatus === 'PRESENT'
+                    ? 'bg-emerald-100 text-emerald-800'
+                    : bed.attendanceStatus === 'MEDICAL'
+                    ? 'bg-rose-100 text-rose-800'
+                    : bed.attendanceStatus === 'OUTING' || bed.attendanceStatus === 'APPROVED_MOVEMENT'
+                    ? 'bg-amber-100 text-amber-800'
+                    : 'bg-purple-100 text-purple-800';
+
+                return (
                   <div
                     key={bed.bedId}
-                    className="p-4 rounded-xl border border-slate-200 bg-slate-50/70 space-y-2 text-xs"
+                    className={`p-4 rounded-xl border space-y-2.5 text-xs transition ${
+                      isOccupied
+                        ? 'border-slate-200 bg-slate-50/70'
+                        : 'border-emerald-200 bg-emerald-50/30'
+                    }`}
                   >
                     <div className="flex items-center justify-between">
                       <span className="font-mono font-bold text-[#123B5D]">
-                        {bed.floor} • {bed.room} • {bed.bedId}
+                        {bed.building.split(' (')[0]} • {bed.floor} • {bed.room} ({bed.bedId})
                       </span>
                       <span
                         className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                          bed.studentName ? 'bg-teal/10 text-[#176B87]' : 'bg-emerald-100 text-emerald-800'
+                          isOccupied ? statusBadgeColor : 'bg-emerald-100 text-emerald-800'
                         }`}
                       >
-                        {bed.studentName ? 'Occupied' : 'Available Bed'}
+                        {isOccupied ? bed.attendanceStatus.replace('_', ' ') : 'VACANT BED'}
                       </span>
                     </div>
-                    <div className="font-bold text-sm text-[#123B5D]">
-                      {bed.studentName || 'Vacant Bed — Click to Allocate'}
+
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="font-extrabold text-sm text-[#123B5D]">
+                          {bed.studentName || 'Available — Ready for Allocation'}
+                        </div>
+                        <div className="text-[11px] text-slate-500">
+                          {isOccupied
+                            ? `Grade ${bed.grade} • Warden: ${bed.wardenName}`
+                            : `Warden: ${bed.wardenName}`}
+                        </div>
+                      </div>
                     </div>
-                    <div className="flex items-center justify-between pt-2 border-t border-slate-200/70">
-                      <span className="text-[11px] text-slate-500">Status: {bed.attendanceStatus}</span>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const statuses: HostelBedItem['attendanceStatus'][] = [
-                            'PRESENT',
-                            'OUTING',
-                            'MEDICAL',
-                            'LEAVE',
-                            'APPROVED_MOVEMENT',
-                          ];
-                          setHostelBeds((prev) =>
-                            prev.map((item) => {
-                              if (item.bedId !== bed.bedId) return item;
-                              if (!item.studentName) {
-                                showToast(`Allocated bed ${bed.bedId} to new boarder`);
-                                return { ...item, studentName: 'Aarav Singhania', grade: '11-A' };
-                              }
-                              const next =
-                                statuses[(statuses.indexOf(item.attendanceStatus) + 1) % statuses.length];
-                              showToast(`Updated ${item.studentName} hostel attendance to ${next}`);
-                              return { ...item, attendanceStatus: next };
-                            })
-                          );
-                        }}
-                        className="px-2.5 py-1 rounded bg-white border border-slate-200 font-bold text-[11px] text-[#176B87] hover:bg-slate-100 cursor-pointer"
-                      >
-                        {bed.studentName ? 'Toggle Roll-Call' : 'Allocate Student'}
-                      </button>
+
+                    {/* Allocation Picker if Vacant */}
+                    {!isOccupied && isAllocatingThis && (
+                      <div className="pt-2 border-t border-emerald-200 space-y-2">
+                        <label className="text-[10px] font-bold text-slate-600 block">
+                          Select Student to Allocate to {bed.bedId}:
+                        </label>
+                        <div className="flex gap-1.5">
+                          <select
+                            value={selectedStudentForBed}
+                            onChange={(e) => setSelectedStudentForBed(e.target.value)}
+                            className="flex-1 px-2 py-1.5 rounded-lg border border-slate-200 bg-white text-[11px]"
+                          >
+                            <option value="Aarav Singhania|11-A">Aarav Singhania (11-A)</option>
+                            <option value="Zoya Merchant|9-A">Zoya Merchant (9-A)</option>
+                            {students.map((s) => (
+                              <option key={s.id} value={`${s.fullName}|${s.grade.replace('Grade ', '')}-${s.section}`}>
+                                {s.fullName} ({s.grade}-{s.section})
+                              </option>
+                            ))}
+                          </select>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const [name, grd] = selectedStudentForBed.split('|');
+                              allocateOrTransferHostelBed(bed.bedId, name, grd || '9-B');
+                              setAllocatingBedId(null);
+                            }}
+                            className="px-2.5 py-1.5 rounded-lg bg-[#16A34A] text-white font-bold text-[11px] cursor-pointer"
+                          >
+                            Confirm
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Room Transfer Picker if Occupied */}
+                    {isOccupied && isTransferringThis && (
+                      <div className="pt-2 border-t border-slate-200 space-y-2">
+                        <label className="text-[10px] font-bold text-slate-600 block">
+                          Transfer {bed.studentName} to Vacant Bed:
+                        </label>
+                        <div className="flex gap-1.5">
+                          <select
+                            value={transferTargetBedId}
+                            onChange={(e) => setTransferTargetBedId(e.target.value)}
+                            className="flex-1 px-2 py-1.5 rounded-lg border border-slate-200 bg-white text-[11px]"
+                          >
+                            <option value="">-- Choose Vacant Bed --</option>
+                            {vacantBedsList.map((vb) => (
+                              <option key={vb.bedId} value={vb.bedId}>
+                                {vb.bedId} ({vb.building.split(' (')[0]} • {vb.room})
+                              </option>
+                            ))}
+                          </select>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (!transferTargetBedId) return;
+                              allocateOrTransferHostelBed(
+                                bed.bedId,
+                                bed.studentName,
+                                bed.grade,
+                                transferTargetBedId
+                              );
+                              setTransferSourceBedId(null);
+                              setTransferTargetBedId('');
+                            }}
+                            className="px-2.5 py-1.5 rounded-lg bg-[#176B87] text-white font-bold text-[11px] cursor-pointer"
+                          >
+                            Transfer
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Action Footer */}
+                    <div className="flex flex-wrap items-center justify-between gap-1.5 pt-2 border-t border-slate-200/70">
+                      {isOccupied ? (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => updateHostelBedAttendance(bed.bedId)}
+                            className="px-2.5 py-1 rounded-lg bg-white border border-slate-200 font-bold text-[11px] text-[#123B5D] hover:bg-slate-100 cursor-pointer"
+                          >
+                            Cycle Roll-Call
+                          </button>
+                          <div className="flex items-center space-x-1">
+                            {vacantBedsList.length > 0 && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setTransferSourceBedId(
+                                    isTransferringThis ? null : bed.bedId
+                                  );
+                                  setTransferTargetBedId(vacantBedsList[0]?.bedId || '');
+                                }}
+                                className="px-2 py-1 rounded-lg bg-sky-50 text-[#176B87] border border-sky-200 font-bold text-[10px] hover:bg-sky-100 cursor-pointer flex items-center space-x-1"
+                              >
+                                <ArrowLeftRight className="w-3 h-3" />
+                                <span>Transfer</span>
+                              </button>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => allocateOrTransferHostelBed(bed.bedId, null)}
+                              className="px-2 py-1 rounded-lg bg-rose-50 text-rose-700 border border-rose-200 font-bold text-[10px] hover:bg-rose-100 cursor-pointer"
+                            >
+                              Vacate
+                            </button>
+                          </div>
+                        </>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setAllocatingBedId(isAllocatingThis ? null : bed.bedId)
+                          }
+                          className="w-full py-1.5 rounded-lg bg-[#123B5D] hover:bg-[#176B87] text-white font-bold text-[11px] cursor-pointer"
+                        >
+                          {isAllocatingThis ? 'Cancel Allocation' : '+ Allocate Student to Bed'}
+                        </button>
+                      )}
                     </div>
                   </div>
-                ))}
+                );
+              })}
             </div>
           </div>
 
           {/* Movement Management & Visitor Registration (Screen #45) */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Hostel Movement & Outing Register */}
             <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-3 text-xs">
-              <h3 className="font-extrabold text-sm text-[#123B5D]">
-                Hostel Movement &amp; Outing Register (Section 10)
-              </h3>
-              <p className="text-[11px] text-slate-500">
-                Tracks departure, purpose, destination, expected return, actual return &amp; authorization.
-              </p>
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-extrabold text-sm text-[#123B5D]">
+                    Hostel Movement &amp; Outing Gate Pass Register (Section 10)
+                  </h3>
+                  <p className="text-[11px] text-slate-500">
+                    Tracks departure, purpose, destination, expected return, actual return &amp; authorization.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowMovementForm(!showMovementForm)}
+                  className="px-3 py-1.5 rounded-xl bg-[#123B5D] hover:bg-[#176B87] text-white font-bold text-[11px] cursor-pointer shrink-0"
+                >
+                  {showMovementForm ? 'Close Form' : '+ Issue Gate Pass'}
+                </button>
+              </div>
+
+              {showMovementForm && (
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    if (!movPurpose.trim() || !movDestination.trim()) return;
+                    addHostelMovement({
+                      studentName: movStudent,
+                      room: movRoom,
+                      departure: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                      purpose: movPurpose.trim(),
+                      destination: movDestination.trim(),
+                      expectedReturn: movExpectedReturn,
+                      authorizedBy: 'Chief Warden Dr. M. Soni',
+                    });
+                    setMovPurpose('');
+                    setMovDestination('');
+                    setShowMovementForm(false);
+                  }}
+                  className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-2.5"
+                >
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <select
+                      value={movStudent}
+                      onChange={(e) => setMovStudent(e.target.value)}
+                      className="px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white font-semibold"
+                    >
+                      {hostelBeds
+                        .filter((b) => b.studentName)
+                        .map((b) => (
+                          <option key={b.bedId} value={`${b.studentName} (${b.grade})`}>
+                            {b.studentName} ({b.room})
+                          </option>
+                        ))}
+                    </select>
+                    <input
+                      type="text"
+                      value={movRoom}
+                      onChange={(e) => setMovRoom(e.target.value)}
+                      placeholder="Room (e.g. B-201)"
+                      className="px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white"
+                    />
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <input
+                      type="text"
+                      value={movPurpose}
+                      onChange={(e) => setMovPurpose(e.target.value)}
+                      placeholder="Purpose (e.g. Medical Checkup / Coaching)"
+                      className="px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white"
+                      required
+                    />
+                    <input
+                      type="text"
+                      value={movDestination}
+                      onChange={(e) => setMovDestination(e.target.value)}
+                      placeholder="Destination (e.g. Manipal Hospital)"
+                      className="px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white"
+                      required
+                    />
+                  </div>
+                  <div className="flex items-center justify-between gap-2">
+                    <input
+                      type="text"
+                      value={movExpectedReturn}
+                      onChange={(e) => setMovExpectedReturn(e.target.value)}
+                      placeholder="Expected Return (e.g. 19:30 Today)"
+                      className="flex-1 px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white"
+                    />
+                    <button
+                      type="submit"
+                      className="px-3.5 py-1.5 rounded-lg bg-[#16A34A] text-white font-bold cursor-pointer"
+                    >
+                      Authorize &amp; Log Pass
+                    </button>
+                  </div>
+                </form>
+              )}
+
               <div className="space-y-2.5">
-                {movements.map((mv) => (
-                  <div key={mv.id} className="p-3 rounded-xl border border-slate-200 bg-slate-50 space-y-1">
+                {hostelMovements.map((mv) => (
+                  <div key={mv.id} className="p-3 rounded-xl border border-slate-200 bg-slate-50 space-y-1.5">
                     <div className="flex items-center justify-between font-bold text-[#123B5D]">
                       <span>
-                        {mv.studentName} ({mv.room})
+                        {mv.id} • {mv.studentName} ({mv.room})
                       </span>
-                      <span className="text-[10px] text-[#176B87]">{mv.actualReturn}</span>
+                      <span
+                        className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                          mv.status === 'RETURNED'
+                            ? 'bg-emerald-100 text-emerald-800'
+                            : 'bg-amber-100 text-amber-800'
+                        }`}
+                      >
+                        {mv.actualReturn}
+                      </span>
                     </div>
                     <div className="text-[11px] text-slate-600">
                       Purpose: {mv.purpose} → <strong>{mv.destination}</strong>
                     </div>
-                    <div className="text-[10px] text-slate-400">
-                      Dep: {mv.departure} • Exp Return: {mv.expectedReturn} • Auth: {mv.authorizedBy}
+                    <div className="flex items-center justify-between pt-1">
+                      <span className="text-[10px] text-slate-400">
+                        Dep: {mv.departure} • Exp Return: {mv.expectedReturn} • Auth: {mv.authorizedBy}
+                      </span>
+                      {mv.status === 'OUT' && (
+                        <button
+                          type="button"
+                          onClick={() => markHostelMovementReturned(mv.id)}
+                          className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[10px] cursor-pointer"
+                        >
+                          ✓ Mark Returned
+                        </button>
+                      )}
                     </div>
                   </div>
                 ))}
               </div>
             </div>
 
+            {/* Visitor Registration & Gate Timestamps (Screen #45) */}
             <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-3 text-xs">
               <div className="flex items-center justify-between">
                 <div>
@@ -653,44 +947,114 @@ export const AdminEnterpriseErpHub: React.FC = () => {
                     Visitor Registration &amp; Gate Timestamps (Screen #45)
                   </h3>
                   <p className="text-[11px] text-slate-500">
-                    Biometric &amp; Govt ID verified visitor log with entry/exit timestamps.
+                    Biometric &amp; Govt ID verified visitor log with live check-in &amp; check-out timestamps.
                   </p>
                 </div>
                 <button
                   type="button"
-                  onClick={() => {
-                    const nv: HostelVisitorItem = {
-                      id: `VS-0${visitors.length + 1}`,
-                      visitorName: 'Mr. Vikram Brody',
-                      relation: 'Father (Verified OTP #8812)',
-                      visitingStudent: 'Marcus Brody (A-101)',
-                      idVerified: true,
-                      entryTime: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                      exitTime: 'Checked In',
-                    };
-                    setVisitors([nv, ...visitors]);
-                    showToast('Logged verified hostel visitor pass with entry timestamp');
-                  }}
-                  className="px-3 py-1.5 rounded-xl bg-[#176B87] text-white font-bold text-[11px] cursor-pointer"
+                  onClick={() => setShowVisitorForm(!showVisitorForm)}
+                  className="px-3 py-1.5 rounded-xl bg-[#176B87] text-white font-bold text-[11px] cursor-pointer shrink-0"
                 >
-                  + Log Visitor Entry
+                  {showVisitorForm ? 'Close Form' : '+ Log Visitor Entry'}
                 </button>
               </div>
+
+              {showVisitorForm && (
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    if (!visName.trim()) return;
+                    addHostelVisitor({
+                      visitorName: visName.trim(),
+                      relation: visRelation,
+                      visitingStudent: visStudent,
+                      room: visRoom,
+                      idProofType: visIdProof,
+                    });
+                    setVisName('');
+                    setShowVisitorForm(false);
+                  }}
+                  className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-2.5"
+                >
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <input
+                      type="text"
+                      value={visName}
+                      onChange={(e) => setVisName(e.target.value)}
+                      placeholder="Visitor Full Name *"
+                      className="px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white"
+                      required
+                    />
+                    <input
+                      type="text"
+                      value={visRelation}
+                      onChange={(e) => setVisRelation(e.target.value)}
+                      placeholder="Relation (e.g. Father / Mother)"
+                      className="px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white"
+                    />
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <select
+                      value={visStudent}
+                      onChange={(e) => setVisStudent(e.target.value)}
+                      className="px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white font-semibold"
+                    >
+                      {hostelBeds
+                        .filter((b) => b.studentName)
+                        .map((b) => (
+                          <option key={b.bedId} value={`${b.studentName} (${b.room})`}>
+                            Visiting: {b.studentName} ({b.room})
+                          </option>
+                        ))}
+                    </select>
+                    <input
+                      type="text"
+                      value={visIdProof}
+                      onChange={(e) => setVisIdProof(e.target.value)}
+                      placeholder="ID Proof Verified"
+                      className="px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white"
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    className="w-full py-1.5 rounded-lg bg-[#16A34A] text-white font-bold cursor-pointer"
+                  >
+                    Verify ID &amp; Stamp Entry Time
+                  </button>
+                </form>
+              )}
+
               <div className="space-y-2.5">
-                {visitors.map((v) => (
-                  <div key={v.id} className="p-3 rounded-xl border border-slate-200 bg-slate-50 flex items-center justify-between">
+                {hostelVisitors.map((v) => (
+                  <div
+                    key={v.id}
+                    className="p-3 rounded-xl border border-slate-200 bg-slate-50 flex items-center justify-between gap-2"
+                  >
                     <div>
-                      <div className="font-bold text-[#123B5D]">{v.visitorName}</div>
+                      <div className="font-bold text-[#123B5D]">
+                        {v.visitorName} <span className="text-[10px] text-slate-400">({v.id})</span>
+                      </div>
                       <div className="text-[11px] text-slate-500">
-                        {v.relation} • Visiting: {v.visitingStudent}
+                        {v.relation} • Visiting: <strong>{v.visitingStudent}</strong>
                       </div>
                       <div className="text-[10px] text-emerald-700 font-semibold">
-                        Entry: {v.entryTime} • Exit: {v.exitTime}
+                        Entry: {v.entryTime} • Exit: {v.exitTime} • {v.idProofType}
                       </div>
                     </div>
-                    <span className="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[10px] font-bold">
-                      ID Verified
-                    </span>
+                    <div className="flex flex-col items-end space-y-1 shrink-0">
+                      <span className="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[10px] font-bold">
+                        ID Verified
+                      </span>
+                      {v.status === 'CHECKED_IN' && (
+                        <button
+                          type="button"
+                          onClick={() => checkoutHostelVisitor(v.id)}
+                          className="px-2.5 py-1 rounded-lg bg-[#123B5D] hover:bg-[#176B87] text-white font-bold text-[10px] cursor-pointer"
+                        >
+                          Check Out Visitor
+                        </button>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -699,113 +1063,413 @@ export const AdminEnterpriseErpHub: React.FC = () => {
         </div>
       )}
 
-      {/* ================= PILLAR 3: LIBRARY, INVENTORY & PROCUREMENT (Screens #46–#49) ================= */}
+      {/* ================= PILLAR 3: LIBRARY, INVENTORY & PROCUREMENT (Screens #46–#49 — Section 8) ================= */}
       {activePillar === 'LIBRARY_INVENTORY' && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Library Catalogue, Issue/Return, Reservation & Fines (Screens #46 & #47) */}
-          <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-4 text-xs">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="font-extrabold text-sm text-[#123B5D]">
-                  Library Catalogue, Issue/Return &amp; Digital Resources (#46–#47)
-                </h3>
-                <p className="text-[11px] text-slate-500">
-                  Manage copies, issue/return, renewal, reservation, fines &amp; digital repository.
-                </p>
+        <div className="space-y-6">
+          {/* Library & Procurement KPI Strip */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs">
+              <span className="text-[10px] font-bold uppercase text-slate-400">Total Library Copies</span>
+              <div className="text-2xl font-black text-[#123B5D] mt-1">
+                {libraryBooks.reduce((acc, b) => acc + b.availableCopies, 0)} /{' '}
+                {libraryBooks.reduce((acc, b) => acc + b.totalCopies, 0)}
               </div>
+              <span className="text-[11px] font-semibold text-emerald-600">Available on Shelves</span>
             </div>
-
-            <div className="space-y-2.5">
-              {libraryBooks.map((b) => (
-                <div
-                  key={b.id}
-                  className="p-3.5 rounded-xl border border-slate-200 bg-slate-50/70 flex items-center justify-between"
-                >
-                  <div>
-                    <div className="font-bold text-[#123B5D]">{b.title}</div>
-                    <div className="text-[11px] text-slate-500">
-                      {b.copies} • Holder: {b.borrower} • Fine: <strong className="text-rose-600">{b.fine}</strong>
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setLibraryBooks((prev) =>
-                        prev.map((item) =>
-                          item.id === b.id
-                            ? {
-                                ...item,
-                                status: item.status === 'AVAILABLE' ? 'ISSUED' : 'AVAILABLE',
-                                borrower: item.status === 'AVAILABLE' ? 'Elena Vance (9-B)' : '—',
-                                fine: '₹0',
-                              }
-                            : item
-                        )
-                      );
-                      showToast(`Processed Library Issue/Return transaction for ${b.id}`);
-                    }}
-                    className="px-3 py-1.5 rounded-lg bg-[#123B5D] text-white font-bold text-[11px] cursor-pointer"
-                  >
-                    {b.status === 'AVAILABLE' ? 'Issue Book' : 'Record Return'}
-                  </button>
-                </div>
-              ))}
+            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs">
+              <span className="text-[10px] font-bold uppercase text-slate-400">Issued &amp; Reserved</span>
+              <div className="text-2xl font-black text-[#123B5D] mt-1">
+                {libraryBooks.filter((b) => b.status === 'ISSUED' || b.status === 'RESERVED').length} Active Titles
+              </div>
+              <span className="text-[11px] font-semibold text-[#176B87]">Synced with Student Portal</span>
+            </div>
+            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs">
+              <span className="text-[10px] font-bold uppercase text-slate-400">Overdue Fines Due</span>
+              <div className="text-2xl font-black text-rose-600 mt-1">
+                ₹{libraryBooks.reduce((acc, b) => acc + b.fineAmount, 0)}
+              </div>
+              <span className="text-[11px] font-semibold text-slate-500">Instant Fine Settlement</span>
+            </div>
+            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs">
+              <span className="text-[10px] font-bold uppercase text-slate-400">Active Asset POs</span>
+              <div className="text-2xl font-black text-[#123B5D] mt-1">{inventoryAssets.length} Orders</div>
+              <span className="text-[11px] font-semibold text-purple-700">Synced to Principal Approvals</span>
             </div>
           </div>
 
-          {/* Inventory & Procurement POs (Screens #48 & #49) */}
-          <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-4 text-xs">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="font-extrabold text-sm text-[#123B5D]">
-                  Inventory, Assets, Vendors &amp; Purchase Orders (#48–#49)
-                </h3>
-                <p className="text-[11px] text-slate-500">
-                  Assets → Stock → Purchase Request → Approval → Vendor → PO → Delivery → Verification → Maintenance
-                </p>
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            {/* Library Catalogue, Issue/Return, Renewal, Reservation & Fines (Screens #46 & #47 — 7 cols) */}
+            <div className="lg:col-span-7 bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-4 text-xs">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div>
+                  <h3 className="font-extrabold text-sm text-[#123B5D]">
+                    Library Catalogue, Issue/Return, Renewal, Reservation &amp; Fines (#46–#47)
+                  </h3>
+                  <p className="text-[11px] text-slate-500">
+                    Manage physical &amp; digital copies, issue/return, +14d renewal, student reservations, fines &amp; lost/damaged flags.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowAddBookForm(!showAddBookForm)}
+                  className="px-3 py-1.5 rounded-xl bg-[#123B5D] hover:bg-[#176B87] text-white font-bold text-[11px] cursor-pointer shrink-0"
+                >
+                  {showAddBookForm ? 'Close Form' : '+ Add Book / E-Book'}
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setInventoryAssets([
-                    {
-                      code: `AST-NEW-${inventoryAssets.length + 1}`,
-                      item: 'Smart Interactive Flat Panels (75" 4K)',
-                      stock: '12 Units',
-                      vendor: 'ViewSonic Education India',
-                      poStatus: 'PO Generated & Approved',
-                      maintenance: '3-Year AMC Active',
-                    },
-                    ...inventoryAssets,
-                  ]);
-                  showToast('Created new Purchase Order & verified asset stock entry');
-                }}
-                className="px-3 py-1.5 rounded-xl bg-[#176B87] text-white font-bold text-[11px] cursor-pointer"
-              >
-                + Raise Purchase Order
-              </button>
+
+              {showAddBookForm && (
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    if (!newBookTitle.trim() || !newBookAuthor.trim()) return;
+                    addLibraryBook({
+                      title: newBookTitle.trim(),
+                      author: newBookAuthor.trim(),
+                      category: newBookCategory,
+                      totalCopies: Number(newBookCopies) || 10,
+                      isDigitalResource: newBookDigital,
+                    });
+                    setNewBookTitle('');
+                    setNewBookAuthor('');
+                    setShowAddBookForm(false);
+                  }}
+                  className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-2.5"
+                >
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <input
+                      type="text"
+                      value={newBookTitle}
+                      onChange={(e) => setNewBookTitle(e.target.value)}
+                      placeholder="Book / Resource Title *"
+                      className="px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white"
+                      required
+                    />
+                    <input
+                      type="text"
+                      value={newBookAuthor}
+                      onChange={(e) => setNewBookAuthor(e.target.value)}
+                      placeholder="Author / Publisher *"
+                      className="px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white"
+                      required
+                    />
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 items-center">
+                    <select
+                      value={newBookCategory}
+                      onChange={(e) => setNewBookCategory(e.target.value as LibraryBookRecord['category'])}
+                      className="px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white font-semibold"
+                    >
+                      <option value="Science">Science</option>
+                      <option value="Mathematics">Mathematics</option>
+                      <option value="Computer Science">Computer Science</option>
+                      <option value="Literature">Literature</option>
+                      <option value="History">History</option>
+                    </select>
+                    <input
+                      type="number"
+                      min={1}
+                      value={newBookCopies}
+                      onChange={(e) => setNewBookCopies(Number(e.target.value))}
+                      placeholder="Total Copies"
+                      className="px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white"
+                    />
+                    <label className="flex items-center space-x-1.5 font-semibold text-[#176B87] cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={newBookDigital}
+                        onChange={(e) => setNewBookDigital(e.target.checked)}
+                      />
+                      <span>Sync Digital E-Book to Student Portal</span>
+                    </label>
+                  </div>
+                  <button
+                    type="submit"
+                    className="w-full py-1.5 rounded-lg bg-[#16A34A] text-white font-bold cursor-pointer"
+                  >
+                    Catalogue Book &amp; Sync Repository
+                  </button>
+                </form>
+              )}
+
+              {/* Filter Bar + Student Selector for Issue/Reserve */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-slate-100">
+                <div className="flex flex-wrap gap-1">
+                  {(['ALL', 'AVAILABLE', 'ISSUED', 'RESERVED', 'OVERDUE', 'DIGITAL'] as const).map((f) => (
+                    <button
+                      key={f}
+                      type="button"
+                      onClick={() => setLibraryFilter(f)}
+                      className={`px-2.5 py-1 rounded-lg text-[10px] font-bold cursor-pointer ${
+                        libraryFilter === f
+                          ? 'bg-[#176B87] text-white'
+                          : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                      }`}
+                    >
+                      {f}
+                    </button>
+                  ))}
+                </div>
+                <div className="flex items-center space-x-1.5">
+                  <span className="text-[10px] font-bold text-slate-500">Target Scholar:</span>
+                  <select
+                    value={libraryBorrowerTarget}
+                    onChange={(e) => setLibraryBorrowerTarget(e.target.value)}
+                    className="px-2 py-1 rounded-lg border border-slate-200 bg-white font-bold text-[11px]"
+                  >
+                    <option value="Elena Vance (9-B)">Elena Vance (9-B)</option>
+                    <option value="Marcus Brody (9-B)">Marcus Brody (9-B)</option>
+                    <option value="Aria Montgomery (9-B)">Aria Montgomery (9-B)</option>
+                    {students.map((s) => (
+                      <option key={s.id} value={`${s.fullName} (${s.grade.replace('Grade ', '')}-${s.section})`}>
+                        {s.fullName} ({s.grade}-{s.section})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="space-y-2.5">
+                {filteredBooks.map((b) => (
+                  <div
+                    key={b.id}
+                    className="p-3.5 rounded-xl border border-slate-200 bg-slate-50/70 space-y-2"
+                  >
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                      <div>
+                        <div className="flex items-center space-x-2">
+                          <span className="font-mono text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-200 text-slate-700">
+                            {b.id}
+                          </span>
+                          <span className="font-bold text-[#123B5D]">{b.title}</span>
+                          {b.isDigitalResource && (
+                            <span className="px-1.5 py-0.5 rounded bg-sky-100 text-sky-800 text-[9px] font-bold">
+                              E-Book Synced
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-[11px] text-slate-500 mt-0.5">
+                          Author: {b.author} • ISBN: {b.isbn} • Copies:{' '}
+                          <strong>
+                            {b.availableCopies} / {b.totalCopies} Available
+                          </strong>
+                        </div>
+                      </div>
+                      <span
+                        className={`px-2 py-0.5 rounded text-[10px] font-bold w-fit ${
+                          b.status === 'AVAILABLE'
+                            ? 'bg-emerald-100 text-emerald-800'
+                            : b.status === 'ISSUED'
+                            ? 'bg-amber-100 text-amber-800'
+                            : b.status === 'RESERVED'
+                            ? 'bg-purple-100 text-purple-800'
+                            : 'bg-rose-100 text-rose-800'
+                        }`}
+                      >
+                        {b.status}
+                      </span>
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-1.5 border-t border-slate-200/70">
+                      <div className="text-[11px] text-slate-600">
+                        Holder: <strong>{b.borrower}</strong>
+                        {b.dueDate ? ` • Due: ${b.dueDate}` : ''}
+                        {b.renewalsCount > 0 ? ` • Renewals: ${b.renewalsCount}` : ''} • Fine:{' '}
+                        <strong className={b.fineAmount > 0 ? 'text-rose-600' : 'text-emerald-700'}>
+                          ₹{b.fineAmount}
+                        </strong>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        {b.status === 'AVAILABLE' || b.status === 'RESERVED' ? (
+                          <button
+                            type="button"
+                            onClick={() => issueOrReturnLibraryBook(b.id, 'ISSUE', libraryBorrowerTarget)}
+                            className="px-2.5 py-1 rounded-lg bg-[#123B5D] hover:bg-[#176B87] text-white font-bold text-[10px] cursor-pointer"
+                          >
+                            Issue to {libraryBorrowerTarget.split(' ')[0]}
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => issueOrReturnLibraryBook(b.id, 'RETURN', b.borrower)}
+                            className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[10px] cursor-pointer"
+                          >
+                            Record Return
+                          </button>
+                        )}
+
+                        {b.status === 'ISSUED' && (
+                          <button
+                            type="button"
+                            onClick={() => issueOrReturnLibraryBook(b.id, 'RENEW', b.borrower)}
+                            className="px-2 py-1 rounded-lg bg-white border border-slate-200 text-[#176B87] font-bold text-[10px] hover:bg-slate-100 cursor-pointer"
+                          >
+                            Renew (+14d)
+                          </button>
+                        )}
+
+                        {b.status !== 'RESERVED' && (
+                          <button
+                            type="button"
+                            onClick={() => issueOrReturnLibraryBook(b.id, 'RESERVE', libraryBorrowerTarget)}
+                            className="px-2 py-1 rounded-lg bg-purple-50 border border-purple-200 text-purple-700 font-bold text-[10px] hover:bg-purple-100 cursor-pointer"
+                          >
+                            Reserve
+                          </button>
+                        )}
+
+                        {b.fineAmount > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => issueOrReturnLibraryBook(b.id, 'CLEAR_FINE', b.borrower)}
+                            className="px-2 py-1 rounded-lg bg-amber-500 hover:bg-amber-600 text-white font-bold text-[10px] cursor-pointer"
+                          >
+                            Clear ₹{b.fineAmount} Fine
+                          </button>
+                        )}
+
+                        {b.status !== 'LOST_DAMAGED' && (
+                          <button
+                            type="button"
+                            onClick={() => issueOrReturnLibraryBook(b.id, 'LOST_DAMAGED', b.borrower)}
+                            className="px-2 py-1 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 font-bold text-[10px] hover:bg-rose-100 cursor-pointer"
+                          >
+                            Lost/Damaged
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
 
-            <div className="space-y-2.5">
-              {inventoryAssets.map((ast) => (
-                <div
-                  key={ast.code}
-                  className="p-3.5 rounded-xl border border-slate-200 bg-slate-50/70 space-y-1"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold text-[#123B5D]">{ast.item}</span>
-                    <span className="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 font-bold text-[10px]">
-                      {ast.poStatus}
-                    </span>
-                  </div>
-                  <div className="text-[11px] text-slate-500">
-                    Code: {ast.code} • Stock: <strong>{ast.stock}</strong> • Vendor: {ast.vendor}
-                  </div>
-                  <div className="text-[10px] text-[#176B87] font-semibold">
-                    Maintenance Status: {ast.maintenance}
-                  </div>
+            {/* Inventory & Procurement POs (Screens #48 & #49 — 5 cols) */}
+            <div className="lg:col-span-5 bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-4 text-xs">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-extrabold text-sm text-[#123B5D]">
+                    Inventory, Assets &amp; Purchase Orders (#48–#49)
+                  </h3>
+                  <p className="text-[11px] text-slate-500">
+                    Assets → Stock → Purchase Request → Approval → Vendor → PO → Delivery → Verification → Maintenance
+                  </p>
                 </div>
-              ))}
+                <button
+                  type="button"
+                  onClick={() => setShowAddPoForm(!showAddPoForm)}
+                  className="px-3 py-1.5 rounded-xl bg-[#176B87] text-white font-bold text-[11px] cursor-pointer shrink-0"
+                >
+                  {showAddPoForm ? 'Close' : '+ Raise PO'}
+                </button>
+              </div>
+
+              {showAddPoForm && (
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    if (!poItem.trim() || !poVendor.trim()) return;
+                    addInventoryAssetOrder({
+                      item: poItem.trim(),
+                      category: poCategory,
+                      stock: poStock,
+                      vendor: poVendor.trim(),
+                      amount: poAmount,
+                    });
+                    setPoItem('');
+                    setPoVendor('');
+                    setShowAddPoForm(false);
+                  }}
+                  className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-2.5"
+                >
+                  <input
+                    type="text"
+                    value={poItem}
+                    onChange={(e) => setPoItem(e.target.value)}
+                    placeholder="Equipment / Asset Description *"
+                    className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white"
+                    required
+                  />
+                  <div className="grid grid-cols-2 gap-2">
+                    <select
+                      value={poCategory}
+                      onChange={(e) => setPoCategory(e.target.value as InventoryAssetRecord['category'])}
+                      className="px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white font-semibold"
+                    >
+                      <option value="Laboratory">Laboratory</option>
+                      <option value="IT & Robotics">IT &amp; Robotics</option>
+                      <option value="Sports">Sports</option>
+                      <option value="Furniture">Furniture</option>
+                      <option value="Examination">Examination</option>
+                    </select>
+                    <input
+                      type="text"
+                      value={poStock}
+                      onChange={(e) => setPoStock(e.target.value)}
+                      placeholder="Quantity (e.g. 25 Units)"
+                      className="px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <input
+                      type="text"
+                      value={poVendor}
+                      onChange={(e) => setPoVendor(e.target.value)}
+                      placeholder="Approved Vendor *"
+                      className="px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white"
+                      required
+                    />
+                    <input
+                      type="text"
+                      value={poAmount}
+                      onChange={(e) => setPoAmount(e.target.value)}
+                      placeholder="PO Value (e.g. ₹1,45,000)"
+                      className="px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white"
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    className="w-full py-1.5 rounded-lg bg-[#16A34A] text-white font-bold cursor-pointer"
+                  >
+                    Submit Purchase Requisition (Syncs to Principal)
+                  </button>
+                </form>
+              )}
+
+              <div className="space-y-2.5">
+                {inventoryAssets.map((ast) => (
+                  <div
+                    key={ast.code}
+                    className="p-3.5 rounded-xl border border-slate-200 bg-slate-50/70 space-y-1.5"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-[#123B5D]">{ast.item}</span>
+                      <span className="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 font-bold text-[10px]">
+                        {ast.poStatus}
+                      </span>
+                    </div>
+                    <div className="text-[11px] text-slate-500">
+                      {ast.poNumber} ({ast.code}) • Stock: <strong>{ast.stock}</strong> • Value:{' '}
+                      <strong>{ast.amount}</strong>
+                    </div>
+                    <div className="flex items-center justify-between pt-1">
+                      <span className="text-[10px] text-[#176B87] font-semibold">
+                        Vendor: {ast.vendor} • {ast.maintenance}
+                      </span>
+                      {ast.poStatus !== 'Verified & Active' && (
+                        <button
+                          type="button"
+                          onClick={() => advanceInventoryAssetStatus(ast.code)}
+                          className="px-2.5 py-1 rounded-lg bg-[#123B5D] hover:bg-[#176B87] text-white font-bold text-[10px] cursor-pointer"
+                        >
+                          Advance PO &rarr;
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>
@@ -817,55 +1481,82 @@ export const AdminEnterpriseErpHub: React.FC = () => {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Branded Certificate Generator (Screen #50) */}
             <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-4 text-xs">
-              <h3 className="font-extrabold text-sm text-[#123B5D]">
-                Branded Certificate Generator with QR Code (Screen #50)
-              </h3>
-              <p className="text-[11px] text-slate-500">
-                Supports Bonafide, Study, Transfer (TC), Character, Conduct, Participation, Achievement, Sports, Event &amp; Fee certificates.
-              </p>
+              <div>
+                <h3 className="font-extrabold text-sm text-[#123B5D]">
+                  Branded Certificate Generator with Live QR Vault Sync (Screen #50)
+                </h3>
+                <p className="text-[11px] text-slate-500">
+                  All 11 official certificate types • Syncs generated certificate to Parent Document Vault, Student Honors &amp; QR Verification Registry.
+                </p>
+              </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="font-bold text-slate-700 block mb-1">Certificate Template</label>
+                  <label className="font-bold text-slate-700 block mb-1">Certificate Template (11 Types)</label>
                   <select
-                    value={certType}
-                    onChange={(e) => setCertType(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white"
+                    value={certTypeKey}
+                    onChange={(e) => setCertTypeKey(e.target.value as ParentCertificateItem['type'])}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white font-semibold"
                   >
-                    <option>Bonafide &amp; Study Certificate</option>
-                    <option>Transfer Certificate (Official TC)</option>
-                    <option>Character &amp; Conduct Certificate</option>
-                    <option>Sports &amp; Athletics Merit Certificate</option>
-                    <option>Annual Tuition Fee Paid Certificate</option>
+                    {certificateTypeOptions.map((opt) => (
+                      <option key={opt.key} value={opt.key}>
+                        {opt.label}
+                      </option>
+                    ))}
                   </select>
                 </div>
                 <div>
                   <label className="font-bold text-slate-700 block mb-1">Select Scholar</label>
-                  <input
-                    type="text"
+                  <select
                     value={certStudent}
                     onChange={(e) => setCertStudent(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200"
-                  />
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white font-semibold"
+                  >
+                    <option value="Elena Vance">Elena Vance (Grade 9B)</option>
+                    <option value="Aarav Sharma">Aarav Sharma (Grade 10A)</option>
+                    <option value="Ananya Sharma">Ananya Sharma (Grade 6B)</option>
+                    {students.map((s) => (
+                      <option key={s.id} value={s.fullName}>
+                        {s.fullName} ({s.grade}-{s.section})
+                      </option>
+                    ))}
+                  </select>
                 </div>
+              </div>
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">Purpose / Citation Note</label>
+                <input
+                  type="text"
+                  value={certPurpose}
+                  onChange={(e) => setCertPurpose(e.target.value)}
+                  placeholder="e.g. Passport Renewal / National Olympiad Merit / Tax Rebate"
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200"
+                />
               </div>
               <button
                 type="button"
                 onClick={() => {
-                  downloadCertificatePdf({
-                    title: certType,
-                    subtitle: `Official ${certType} issued with digital registrar seal and QR verification hash.`,
-                    category: 'Institutional Registrar Certificate',
-                    ranking: 'Verified Authentic',
-                    awardYear: '2026-2027',
+                  const created = requestParentCertificate({
                     studentName: certStudent,
-                    grade: 'Grade 9B',
+                    type: certTypeKey,
+                    purpose: certPurpose,
+                    signedBy: 'Dr. Mehta (Principal) & Central Registrar',
                   });
-                  showToast(`Generated & downloaded ${certType} PDF with QR code`);
+                  setVerifyInput(created.verificationCode);
+                  setVerifyStatus(verifyCertificateByCode(created.verificationCode));
+                  downloadCertificatePdf({
+                    title: created.title,
+                    subtitle: `Issued to ${created.childName} • Purpose: ${created.purpose} • QR Serial: ${created.verificationCode}`,
+                    category: created.type,
+                    ranking: `Verified (${created.verificationCode})`,
+                    awardYear: '2026-2027',
+                    studentName: created.childName,
+                    grade: 'CASPA Central Campus',
+                  });
                 }}
-                className="w-full py-2.5 rounded-xl bg-[#123B5D] hover:bg-[#176B87] text-white font-bold flex items-center justify-center space-x-2 cursor-pointer"
+                className="w-full py-2.5 rounded-xl bg-[#123B5D] hover:bg-[#176B87] text-white font-bold flex items-center justify-center space-x-2 cursor-pointer shadow-xs"
               >
                 <Download className="w-4 h-4" />
-                <span>Generate &amp; Download Official QR Certificate PDF</span>
+                <span>Issue to Vault, Sync Student Honors &amp; Download QR PDF</span>
               </button>
             </div>
 
@@ -873,34 +1564,76 @@ export const AdminEnterpriseErpHub: React.FC = () => {
             <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-4 text-xs">
               <h3 className="font-extrabold text-sm text-[#123B5D] flex items-center space-x-1.5">
                 <QrCode className="w-4 h-4 text-[#176B87]" />
-                <span>Instant Certificate QR &amp; Serial Verification (Screen #51)</span>
+                <span>Instant Certificate QR &amp; Serial Verification Portal (Screen #51)</span>
               </h3>
+              <p className="text-[11px] text-slate-500">
+                Enter any certificate serial code from the Registrar Vault below to verify cryptographic authenticity.
+              </p>
               <div className="flex gap-2">
                 <input
                   type="text"
                   value={verifyInput}
                   onChange={(e) => setVerifyInput(e.target.value)}
-                  placeholder="Enter Certificate Serial No. (e.g. CASPA-CERT-2026-8841)"
+                  placeholder="Enter Certificate Serial No. (e.g. CASPA-BNF-2026-9921)"
                   className="flex-1 px-3 py-2 rounded-xl border border-slate-200 font-mono"
                 />
                 <button
                   type="button"
-                  onClick={() =>
-                    setVerifyResult(
-                      `VERIFIED AUTHENTIC (${verifyInput}): Issued by CASPA School OS Registrar • Digital Signature Valid`
-                    )
-                  }
+                  onClick={() => setVerifyStatus(verifyCertificateByCode(verifyInput))}
                   className="px-4 py-2 rounded-xl bg-[#176B87] text-white font-bold cursor-pointer"
                 >
                   Verify QR
                 </button>
               </div>
-              {verifyResult && (
-                <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 font-semibold flex items-center space-x-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                  <span>{verifyResult}</span>
+
+              <div
+                className={`p-3.5 rounded-xl border font-semibold flex items-start space-x-2.5 ${
+                  verifyStatus.verified
+                    ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
+                    : 'bg-rose-50 border-rose-200 text-rose-900'
+                }`}
+              >
+                {verifyStatus.verified ? (
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                ) : (
+                  <XCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                )}
+                <div className="space-y-1">
+                  <div>{verifyStatus.message}</div>
+                  {verifyStatus.certificate && (
+                    <div className="text-[11px] text-emerald-700 font-mono">
+                      Holder: {verifyStatus.certificate.childName} • Type: {verifyStatus.certificate.type} • Status: {verifyStatus.certificate.status}
+                    </div>
+                  )}
                 </div>
-              )}
+              </div>
+
+              {/* Live Issued Certificates Registry List */}
+              <div className="pt-2 border-t border-slate-100 space-y-2">
+                <div className="text-[10px] font-bold uppercase text-slate-400">
+                  Recent Issued Certificates in Vault ({parentCertificates.length}) — Click to Verify
+                </div>
+                <div className="max-h-36 overflow-y-auto space-y-1.5 pr-1">
+                  {parentCertificates.map((c) => (
+                    <div
+                      key={c.id}
+                      onClick={() => {
+                        setVerifyInput(c.verificationCode);
+                        setVerifyStatus(verifyCertificateByCode(c.verificationCode));
+                      }}
+                      className="p-2 rounded-lg border border-slate-200 bg-slate-50 hover:bg-white flex items-center justify-between cursor-pointer"
+                    >
+                      <div>
+                        <span className="font-bold text-[#123B5D]">{c.title}</span>{' '}
+                        <span className="text-slate-500">• {c.childName}</span>
+                      </div>
+                      <span className="font-mono text-[10px] font-bold text-[#176B87]">
+                        {c.verificationCode}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
 
@@ -912,21 +1645,110 @@ export const AdminEnterpriseErpHub: React.FC = () => {
                 <h4 className="font-extrabold text-sm text-[#123B5D]">
                   55. Alumni Directory &amp; Mentorship
                 </h4>
-                <span className="px-2 py-0.5 rounded bg-teal/10 text-[#176B87] font-bold text-[10px]">
-                  1,840 Alumni
-                </span>
+                <button
+                  type="button"
+                  onClick={() => setShowAddAlumniForm(!showAddAlumniForm)}
+                  className="px-2.5 py-1 rounded-lg bg-[#176B87] text-white font-bold text-[10px] cursor-pointer"
+                >
+                  {showAddAlumniForm ? 'Close' : '+ Add Alumni'}
+                </button>
               </div>
-              {[
-                { name: 'Dr. Aditi Rao (Batch 2016)', org: 'AI Researcher, Stanford & Google', role: 'Mentorship & Guest Talk' },
-                { name: 'Karthik Menon (Batch 2018)', org: 'Product Lead, Stripe (Singapore)', role: 'Summer Internship Sponsor' },
-                { name: 'Neha Verma (Batch 2015)', org: 'IAS Officer • Rhodes Scholar', role: 'Endowment Donor (₹5.0L)' },
-              ].map((al) => (
-                <div key={al.name} className="p-3 rounded-xl border border-slate-200 bg-slate-50 space-y-1">
-                  <div className="font-bold text-[#123B5D]">{al.name}</div>
-                  <div className="text-[11px] text-slate-600">{al.org}</div>
-                  <div className="text-[10px] font-bold text-[#176B87]">{al.role}</div>
-                </div>
-              ))}
+
+              {showAddAlumniForm && (
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    if (!almName.trim() || !almOrg.trim()) return;
+                    addAlumniProfile({
+                      name: almName.trim(),
+                      graduationYear: almBatch,
+                      higherEducation: 'Ivy League / IIT Scholar',
+                      organization: almOrg.trim(),
+                      industry: 'Global Technology & Leadership',
+                      location: 'Bengaluru / Global',
+                      achievement: 'Distinguished Young Alumni Honoree',
+                      contributionType: almContribution,
+                      contributionDetail: `${almContribution} Program for Senior Secondary Scholars`,
+                    });
+                    setAlmName('');
+                    setAlmOrg('');
+                    setShowAddAlumniForm(false);
+                  }}
+                  className="p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-2"
+                >
+                  <input
+                    type="text"
+                    value={almName}
+                    onChange={(e) => setAlmName(e.target.value)}
+                    placeholder="Alumni Full Name *"
+                    className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white"
+                    required
+                  />
+                  <div className="grid grid-cols-2 gap-1.5">
+                    <input
+                      type="text"
+                      value={almBatch}
+                      onChange={(e) => setAlmBatch(e.target.value)}
+                      placeholder="Batch (e.g. Batch of 2018)"
+                      className="px-2 py-1.5 rounded-lg border border-slate-200 bg-white"
+                    />
+                    <select
+                      value={almContribution}
+                      onChange={(e) => setAlmContribution(e.target.value as any)}
+                      className="px-2 py-1.5 rounded-lg border border-slate-200 bg-white font-semibold"
+                    >
+                      <option value="Mentorship">Mentorship</option>
+                      <option value="Internship Sponsor">Internship Sponsor</option>
+                      <option value="Guest Talk">Guest Talk</option>
+                      <option value="Endowment Donor">Endowment Donor</option>
+                    </select>
+                  </div>
+                  <input
+                    type="text"
+                    value={almOrg}
+                    onChange={(e) => setAlmOrg(e.target.value)}
+                    placeholder="Current Organization & Role *"
+                    className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white"
+                    required
+                  />
+                  <button
+                    type="submit"
+                    className="w-full py-1.5 rounded-lg bg-[#16A34A] text-white font-bold cursor-pointer"
+                  >
+                    Save Alumni Profile
+                  </button>
+                </form>
+              )}
+
+              <div className="space-y-2.5">
+                {alumniProfiles.map((al) => (
+                  <div key={al.id} className="p-3 rounded-xl border border-slate-200 bg-slate-50 space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-[#123B5D]">
+                        {al.name} ({al.graduationYear})
+                      </span>
+                      <span className="px-2 py-0.5 rounded bg-teal/10 text-[#176B87] font-bold text-[10px]">
+                        {al.contributionType}
+                      </span>
+                    </div>
+                    <div className="text-[11px] text-slate-600">
+                      {al.organization} • {al.higherEducation}
+                    </div>
+                    <div className="flex items-center justify-between pt-1">
+                      <span className="text-[10px] font-bold text-emerald-700">
+                        {al.mentorshipSlotsBooked} Mentorship Sessions Booked
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => bookAlumniMentorship(al.id, certStudent)}
+                        className="px-2 py-1 rounded bg-[#123B5D] text-white font-bold text-[10px] cursor-pointer"
+                      >
+                        Book Mentorship
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
 
             {/* Career & Stream Guidance Grades 9-12 (Screen #56) */}
@@ -943,11 +1765,23 @@ export const AdminEnterpriseErpHub: React.FC = () => {
                 { track: 'STEM & Engineering (JEE / BITSAT / Olympiad)', enrolled: '148 Scholars', detail: 'Weekly Mock Tests & IIT Alumni Mentorship' },
                 { track: 'Medical & Life Sciences (NEET / Bio Olympiad)', enrolled: '86 Scholars', detail: 'Clinical Lab Shadowing & NCERT Mastery' },
                 { track: 'Global Universities & Liberal Arts (SAT / AP / IB)', enrolled: '64 Scholars', detail: 'College Essay Workshop & University Fair' },
+                { track: 'Law, Economics & Civil Services (CLAT / CUET)', enrolled: '52 Scholars', detail: 'Moot Court & Public Policy Seminars' },
               ].map((cr) => (
                 <div key={cr.track} className="p-3 rounded-xl border border-slate-200 bg-slate-50 space-y-1">
                   <div className="font-bold text-[#123B5D]">{cr.track}</div>
                   <div className="text-[11px] text-slate-500">{cr.detail}</div>
-                  <div className="text-[10px] font-bold text-emerald-700">{cr.enrolled}</div>
+                  <div className="flex items-center justify-between pt-1">
+                    <span className="text-[10px] font-bold text-emerald-700">{cr.enrolled}</span>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        showToast(`Enrolled ${certStudent} in ${cr.track} counselling cohort`)
+                      }
+                      className="text-[10px] font-bold text-[#176B87] hover:underline cursor-pointer"
+                    >
+                      Assign Scholar &rarr;
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -958,21 +1792,101 @@ export const AdminEnterpriseErpHub: React.FC = () => {
                 <h4 className="font-extrabold text-sm text-[#123B5D]">
                   52–54. Events, Sports &amp; Student Clubs
                 </h4>
-                <span className="px-2 py-0.5 rounded bg-sky-100 text-sky-800 font-bold text-[10px]">
-                  14 Active Clubs
-                </span>
+                <button
+                  type="button"
+                  onClick={() => setShowAddEventForm(!showAddEventForm)}
+                  className="px-2.5 py-1 rounded-lg bg-[#176B87] text-white font-bold text-[10px] cursor-pointer"
+                >
+                  {showAddEventForm ? 'Close' : '+ New Event/Club'}
+                </button>
               </div>
-              {[
-                { name: 'Robotics & AI Innovation Club', members: '68 Scholars', achievement: '1st Place National STEM Olympiad' },
-                { name: 'Varsity Athletics & Swimming Squad', members: '94 Athletes', achievement: '8 Gold Medals at State Meet' },
-                { name: 'Model United Nations (MUN) & Debate', members: '52 Delegates', achievement: 'Best Delegation Award 2026' },
-              ].map((cl) => (
-                <div key={cl.name} className="p-3 rounded-xl border border-slate-200 bg-slate-50 space-y-1">
-                  <div className="font-bold text-[#123B5D]">{cl.name}</div>
-                  <div className="text-[11px] text-slate-600">{cl.achievement}</div>
-                  <div className="text-[10px] font-bold text-[#176B87]">{cl.members}</div>
-                </div>
-              ))}
+
+              {showAddEventForm && (
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    if (!evName.trim()) return;
+                    addCampusEventOrClub({
+                      name: evName.trim(),
+                      category: evCategory,
+                      dateOrSchedule: 'Nov 20, 2026 • 10:00 AM',
+                      venue: evVenue,
+                      coordinator: 'Mrs. Kavita Nair',
+                      participantsCount: 45,
+                      attendanceRate: '96.0%',
+                      resultOrAchievement: evAchievement,
+                    });
+                    setEvName('');
+                    setShowAddEventForm(false);
+                  }}
+                  className="p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-2"
+                >
+                  <input
+                    type="text"
+                    value={evName}
+                    onChange={(e) => setEvName(e.target.value)}
+                    placeholder="Event / Sport / Club Title *"
+                    className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white"
+                    required
+                  />
+                  <div className="grid grid-cols-2 gap-1.5">
+                    <select
+                      value={evCategory}
+                      onChange={(e) => setEvCategory(e.target.value as any)}
+                      className="px-2 py-1.5 rounded-lg border border-slate-200 bg-white font-semibold"
+                    >
+                      <option value="Event">Campus Event</option>
+                      <option value="Sports">Sports Squad</option>
+                      <option value="Club">Student Club</option>
+                    </select>
+                    <input
+                      type="text"
+                      value={evVenue}
+                      onChange={(e) => setEvVenue(e.target.value)}
+                      placeholder="Venue"
+                      className="px-2 py-1.5 rounded-lg border border-slate-200 bg-white"
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    className="w-full py-1.5 rounded-lg bg-[#16A34A] text-white font-bold cursor-pointer"
+                  >
+                    Create &amp; Sync to Operations
+                  </button>
+                </form>
+              )}
+
+              <div className="space-y-2.5">
+                {campusEventsAndClubs.map((cl) => (
+                  <div key={cl.id} className="p-3 rounded-xl border border-slate-200 bg-slate-50 space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-[#123B5D]">{cl.name}</span>
+                      <span className="px-2 py-0.5 rounded bg-sky-100 text-sky-800 font-bold text-[10px]">
+                        {cl.category}
+                      </span>
+                    </div>
+                    <div className="text-[11px] text-slate-600">{cl.resultOrAchievement}</div>
+                    <div className="flex items-center justify-between pt-1">
+                      <span className="text-[10px] font-bold text-[#176B87]">
+                        {cl.participantsCount} Scholars • {cl.certificateIssuedCount} Certs Issued
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const cert = issueEventClubCertificate(cl.id, certStudent);
+                          if (cert) {
+                            setVerifyInput(cert.verificationCode);
+                            setVerifyStatus(verifyCertificateByCode(cert.verificationCode));
+                          }
+                        }}
+                        className="px-2 py-1 rounded bg-[#123B5D] hover:bg-[#176B87] text-white font-bold text-[10px] cursor-pointer"
+                      >
+                        Issue QR Cert
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>
